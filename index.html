@@ -31,53 +31,88 @@ body.mode-mist.mist-text-select .bt,body.mode-mist.mist-text-select .bn{user-sel
 /* No border between tabs — ring sits in center */
 #tab-bar .tab-btn:first-child{border-right:none;}
 /* Padding near center to make space for the ring */
-#tab-btn-a{padding-right:26px;}
-#tab-btn-b{padding-left:26px;}
-/* ─── Tab-centre ring button ─── */
-#tab-centre-ring{
+#tab-btn-a{padding-right:28px;}
+#tab-btn-b{padding-left:28px;}
+/* ─── Book hold-trigger (split-pane toggle) ───
+   Fixed position: horizontal center, vertically between bottom of header
+   and bottom of tab-bar (58px + 38px = 96px), regardless of tab mode.
+   Maximized to fill that band: 38px diameter, position locked. */
+#book-hold-trigger{
   position:fixed;
-  /* In two-tab mode: centred on the tab bar (top:58px + half of 38px = 77px, centred) */
   left:50%;
-  top:77px; /* vertically centred in tab bar (58 header + 19 = 77) */
-  transform:translate(-50%,-50%);
-  z-index:295;
-  width:34px;height:34px;
+  top:77px;
+  transform:translate(-50%,-50%) !important;
+  z-index:301;
+  width:44px;height:44px;
   border-radius:50%;
   background:transparent;
-  border:1.5px solid var(--hdr-border);
+  border:none;
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;
   -webkit-tap-highlight-color:transparent;
-  user-select:none;
-  -webkit-user-select:none;
-  -webkit-touch-callout:none;
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
   touch-action:none;
-  box-shadow:0 2px 8px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.06);
-  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  padding:0;
+  overflow:visible;
 }
-#tab-centre-ring:active{transform:translate(-50%,-50%) scale(.86);}
-/* In no-tab mode the ring sits at the bottom of the header */
-body.no-tab-mode #tab-centre-ring{
-  top:58px; /* bottom edge of header */
-  z-index:310;
+#book-hold-trigger svg{width:64px;height:64px;display:block;pointer-events:none;}
+#book-hold-trigger .bht-ring-bg{
+  fill:none;stroke:var(--hdr-border);stroke-width:3;opacity:0;
+  transition:stroke .2s,opacity .2s;
 }
-body.no-tab-mode #tab-centre-ring:active{transform:translate(-50%,-50%) scale(.86);}
-#tab-centre-ring:hover{border-color:rgba(140,190,60,.55);box-shadow:0 2px 12px rgba(0,0,0,.4), 0 0 10px rgba(100,180,40,.18);}
-body.mode-roots #tab-centre-ring{border-color:var(--hdr-border);}
-body.mode-mist  #tab-centre-ring{border-color:#bbb;box-shadow:0 2px 8px rgba(0,0,0,.14);}
-/* Glow when soil tab is locked in */
-body.tab-ring-set #tab-centre-ring{
-  border-color:rgba(160,220,80,.65);
-  box-shadow:0 0 8px rgba(120,200,50,.45), 0 2px 8px rgba(0,0,0,.3);
+body.mode-mist #book-hold-trigger .bht-ring-bg{stroke:#bbb;}
+#book-hold-trigger.holding .bht-ring-bg{opacity:.55;}
+#book-hold-trigger .bht-ring-fill{
+  fill:none;stroke:#7CD860;stroke-width:3;stroke-linecap:round;
+  stroke-dasharray:100.5;stroke-dashoffset:100.5;
+  transform:rotate(-90deg);transform-origin:50% 50%;
+  filter:drop-shadow(0 0 3px rgba(124,216,96,.9));
+  opacity:0;
+  transition:opacity .12s;
 }
-body.mode-roots.tab-ring-set #tab-centre-ring{border-color:rgba(120,80,20,.7);}
-body.mode-mist.tab-ring-set  #tab-centre-ring{border-color:#6A9030;}
-/* The SVG ring inside the button — reuse the existing ring graphic, smaller */
-#tab-centre-ring svg{
-  width:22px;height:22px;
-  display:block;
+#book-hold-trigger .bht-icon{
+  stroke:#C8A060;stroke-width:4;fill:none;
+  stroke-linecap:round;stroke-linejoin:round;
+  opacity:.7;
+  transition:stroke .2s,filter .2s,opacity .2s;
+}
+#book-hold-trigger .bht-icon-thin{stroke-width:1.6;}
+body.mode-roots #book-hold-trigger .bht-icon{stroke:#5A3A10;}
+body.mode-mist  #book-hold-trigger .bht-icon{stroke:#444;}
+#book-hold-trigger.holding .bht-ring-fill{opacity:1;}
+#book-hold-trigger.unlocked .bht-icon{
+  stroke:#A8F088;
+  filter:drop-shadow(0 0 4px rgba(124,216,96,.85));
+}
+#book-hold-trigger.unlocked .bht-ring-bg{stroke:rgba(124,216,96,.55);opacity:1;}
+@keyframes bhtPulse{
+  0%{transform:translate(-50%,-50%) scale(1);}
+  40%{transform:translate(-50%,-50%) scale(1.22);}
+  100%{transform:translate(-50%,-50%) scale(1);}
+}
+#book-hold-trigger.pulse{animation:bhtPulse .32s cubic-bezier(.34,1.4,.64,1);}
+/* ─── Lightweight toast ─── */
+#bht-toast{
+  position:fixed;
+  left:50%;top:104px;
+  transform:translateX(-50%) translateY(-6px);
+  z-index:9100;
+  background:rgba(20,12,4,.94);
+  color:#E2D8C0;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:10px;
+  padding:8px 16px;
+  font-family:var(--f-body);
+  font-size:.82rem;
+  white-space:nowrap;
+  box-shadow:0 6px 20px rgba(0,0,0,.4);
+  opacity:0;
   pointer-events:none;
+  transition:opacity .18s ease,transform .18s ease;
 }
+body.mode-roots #bht-toast{background:rgba(240,232,210,.96);color:#3A2408;border-color:rgba(0,0,0,.1);}
+body.mode-mist  #bht-toast{background:rgba(255,255,255,.97);color:#222;border-color:#ddd;}
+#bht-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 /* Notch cut from each tab edge: two quarter-circle masks meeting at centre */
 #tab-btn-a::after{
   content:'';position:absolute;top:0;right:0;
@@ -1278,6 +1313,7 @@ body.mode-mist .card-ctx-orbital{display:none!important;}
   position:relative;
   animation:fabPulse 3.5s ease-in-out infinite;
   transition:transform .45s cubic-bezier(.34,1.4,.64,1);
+  margin-right:-24px;
 }
 #fab-add:active{transform:scale(.82) rotate(5deg);animation:none}
 #fab-add:hover{transform:scale(1.13) rotate(-7deg);animation:none}
@@ -4409,36 +4445,16 @@ body.mode-mist #import-reminder-text strong{color:#4A1A00;}
     <span class="tab-active-bar"></span>
   </button>
 </div>
-<!-- Ring button lives outside tab-bar so it survives no-tab mode (tab-bar hidden) -->
-<button id="tab-centre-ring" title="Long-press to toggle tab mode · tap for Soil layout" aria-label="Organise tabs">
-    <svg viewBox="0 0 104 104" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <radialGradient id="tcRingGrad" cx="50%" cy="50%" r="50%">
-          <stop offset="0%"   stop-color="#A07848"/>
-          <stop offset="50%"  stop-color="#8A6030"/>
-          <stop offset="100%" stop-color="#5A3A14"/>
-        </radialGradient>
-        <filter id="tcRough" x="-20%" y="-20%" width="140%" height="140%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="4" seed="7" result="noise"/>
-          <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.8" xChannelSelector="R" yChannelSelector="G" result="rough"/>
-          <feGaussianBlur in="rough" stdDeviation="0.5"/>
-        </filter>
-        <filter id="tcSoft">
-          <feGaussianBlur stdDeviation="0.4"/>
-        </filter>
-      </defs>
-      <!-- Ring arc -->
-      <path d="M 57 8 A 44 44 0 1 0 85 22" stroke="url(#tcRingGrad)" stroke-width="13" stroke-linecap="round" fill="none" filter="url(#tcRough)" opacity="0.92"/>
-      <path d="M 85 22 A 44 44 0 0 0 94 52" stroke="url(#tcRingGrad)" stroke-width="7"  stroke-linecap="round" fill="none" filter="url(#tcRough)" opacity="0.65"/>
-      <path d="M 57 12 A 40 40 0 1 0 82 24" stroke="#7A5828" stroke-width="3" stroke-linecap="round" fill="none" filter="url(#tcSoft)" opacity="0.30"/>
-      <!-- Particles -->
-      <circle cx="44" cy="7"  r="2.2" fill="#8A6030" opacity="0.65" filter="url(#tcSoft)"/>
-      <circle cx="72" cy="10" r="1.8" fill="#8A6030" opacity="0.55"/>
-      <circle cx="7"  cy="42" r="2.5" fill="#9A6E38" opacity="0.55" filter="url(#tcSoft)"/>
-      <circle cx="20" cy="93" r="2.4" fill="#9A6E38" opacity="0.60" filter="url(#tcSoft)"/>
-      <circle cx="83" cy="90" r="1.8" fill="#8A6030" opacity="0.50"/>
+<!-- Book hold-trigger lives outside tab-bar so it survives no-tab mode (tab-bar hidden) -->
+<button id="book-hold-trigger" title="Hold for 2-Tab" aria-label="Hold for 2-Tab">
+    <svg viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+      <circle class="bht-ring-bg"   cx="18" cy="18" r="16"/>
+      <circle class="bht-ring-fill" cx="18" cy="18" r="16"/>
+      <path class="bht-icon" d="M18 12.5 C16.5 11 13.5 10.2 10 10.6 V 24.2 C13.5 23.8 16.5 24.6 18 26 C19.5 24.6 22.5 23.8 26 24.2 V 10.6 C22.5 10.2 19.5 11 18 12.5 Z"/>
+      <path class="bht-icon bht-icon-thin" d="M18 12.5 V 26"/>
     </svg>
   </button>
+<div id="bht-toast">Press and hold to change your workspace.</div>
 <div class="tab-tree-dd" id="tab-dd-a"></div>
 <div class="tab-tree-dd" id="tab-dd-b"></div>
 
@@ -5023,7 +5039,7 @@ body.mode-mist #import-reminder-text strong{color:#4A1A00;}
     <div style="display:flex;flex-direction:column;gap:10px">
       <button id="vault-open-btn" style="background:linear-gradient(135deg,#2A4A10,#4A7820);border:1.5px solid #7A9840;border-radius:12px;padding:14px 18px;font-family:var(--f-display);font-weight:700;font-size:.95rem;color:#D8ECA0;cursor:pointer;transition:filter .14s;text-align:left;display:flex;align-items:center;gap:10px">
         <span style="font-size:1.3rem">📂</span>
-        <div><div>Open vault file</div><div style="font-family:var(--f-body);font-weight:400;font-size:.75rem;color:#A0C070;margin-top:2px">Load an existing arbor-forest.json</div></div>
+        <div><div>Visit an old forest</div><div style="font-family:var(--f-body);font-weight:400;font-size:.75rem;color:#A0C070;margin-top:2px">Load an existing forest from a json file created by Arbor</div></div>
       </button>
       <button id="vault-new-btn" style="background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.12);border-radius:12px;padding:14px 18px;font-family:var(--f-display);font-weight:700;font-size:.95rem;color:#A09070;cursor:pointer;transition:filter .14s;text-align:left;display:flex;align-items:center;gap:10px">
         <span style="font-size:1.3rem">🌱</span>
@@ -5269,9 +5285,11 @@ document.querySelectorAll('.mode-btn').forEach(btn=>{
 btn.addEventListener('click',()=>{
 const m=btn.dataset.mode;
 currentMode=m;
-document.body.className='mode-'+m;
+document.body.classList.remove('mode-leaves','mode-roots','mode-mist');
+document.body.classList.add('mode-'+m);
 // In mist mode, text is selectable when not mid-press (managed dynamically)
 if(m==='mist') document.body.classList.add('mist-text-select');
+else document.body.classList.remove('mist-text-select');
 document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
 renderBlocks();
 });
@@ -5280,14 +5298,14 @@ let _uid=0;
 const mkId=()=>`n${++_uid}`;
 function mkNode(title,note){return{id:mkId(),title:title||'',note:note||'',open:true,kids:[],meta:{origin:'User',createdAt:Date.now(),source:'',doi:'',tags:[]}}}
 function mkTree(name){
-const t={id:mkId(),name:name||'New Tree',roots:[]};
-t.roots.push(mkNode('🌳 '+(name||'New Tree'),'Tap to select · double-tap for Sunlight · hold to open menu'));
+const t={id:mkId(),name:name||'Untitled Tree',roots:[]};
+t.roots.push(mkNode('Untitled Card',''));
 return t;
 }
 function mkIntroForest(){
-// ─── My Ideas tree ───
-const mi={id:mkId(),name:'my ideas',roots:[]};
-mi.roots=[{id:mkId(),title:'my first idea',note:'',open:true,kids:[]}];
+// ─── Default tree ───
+const mi={id:mkId(),name:'Untitled Tree',roots:[]};
+mi.roots=[{id:mkId(),title:'Untitled Card',note:'',open:true,kids:[],meta:{origin:'User',createdAt:Date.now(),source:'',doi:'',tags:[]}}];
 return [mi];
 }
 // ── localStorage auto-save ──────────────────────────────────────────────────
@@ -7724,228 +7742,195 @@ let _ghGetHalfH = null;
   _ghGetHalfH = getHalfH;
 })();
 
-// Wire soil ring hit overlay — transparent donut paths below fab-wrap in z-order
+// Tab mode toggle logic — used by the book hold-trigger.
 (function(){
-  // The logo ring/leaf is now purely decorative — no tap handler needed there.
-  // The action ring has moved to #tab-centre-ring (between the two tabs).
-
-  // ── Tab-centre ring logic ──
-  // Tapping the ring always sets up: left tab = Soil, right tab = the tree
-  // that was active at the moment of tapping (preserved from whatever tab was showing it).
-  // If the right tab (b) is currently active when the ring is tapped, we also
-  // switch focus to the left tab (a) — so the ring is a "go to Soil" shortcut.
-  //
-  // LONG PRESS on the ring toggles between two-tab mode and no-tab mode.
-  const ringBtn = document.getElementById('tab-centre-ring');
-  if(ringBtn){
-
-    // ── Long-press machinery ──
-    const LONG_MS = 500;
-    let _lpTimer = null;
-    let _lpFired  = false;
-
-    function _cancelLp(){
-      if(_lpTimer){ clearTimeout(_lpTimer); _lpTimer = null; }
-    }
-
-    function _enterLongPress(){
-      _lpFired = true;
-      _toggleTabMode();
-    }
-
-    // Visual feedback: pulse the ring while held
-    function _lpStart(e){
-      _lpFired = false;
-      _lpTimer = setTimeout(_enterLongPress, LONG_MS);
-      ringBtn.style.transition = 'border-color .5s ease';
-      ringBtn.style.borderColor = 'rgba(200,160,40,.9)';
-    }
-    function _lpEnd(){
-      _cancelLp();
-      ringBtn.style.transition = '';
-      ringBtn.style.borderColor = '';
-    }
-
-    // Use touchstart/touchend with preventDefault to block browser long-press menu.
-    // Also listen to pointercancel/pointerleave for robustness on non-touch devices.
-    ringBtn.addEventListener('touchstart', e => {
-      e.preventDefault(); // blocks browser context menu + text selection on long press
-      _lpStart(e);
-    }, {passive: false});
-    ringBtn.addEventListener('touchend',    e => { e.preventDefault(); _lpEnd(); }, {passive: false});
-    ringBtn.addEventListener('touchcancel', e => { _lpEnd(); }, {passive: true});
-
-    // Mouse fallback (desktop)
-    ringBtn.addEventListener('mousedown',  _lpStart);
-    ringBtn.addEventListener('mouseup',    _lpEnd);
-    ringBtn.addEventListener('mouseleave', _lpEnd);
-
-    // Suppress the browser context menu unconditionally on this element
-    ringBtn.addEventListener('contextmenu', e => { e.preventDefault(); }, {passive: false});
-
-    // ── Mode toggle (long-press action) ──
-    function _toggleTabMode(){
-      const isNoTab = document.body.classList.contains('no-tab-mode');
-      if(isNoTab){
-        _switchToTwoTab();
-      } else {
-        _switchToNoTab();
-      }
-    }
-
-    // ── Two-tab → No-tab ──
-    function _switchToNoTab(){
-      // Determine which tree to show in no-tab mode:
-      // - Two tabs are tree: use the current active tree
-      // - One tab is soil: use the only (non-soil) tree
-      // - Two tabs are soil: no tree (show canvas background empty)
-      if(!window._getActiveTab || !window._getTabState) return;
-      const stateA = window._getTabState('a');
-      const stateB = window._getTabState('b');
-      const aSoil  = stateA.soilOnly;
-      const bSoil  = stateB.soilOnly;
-
-      // Close soil if open
-      const soilOv = document.getElementById('soil-ov');
-      if(soilOv && soilOv.classList.contains('open') && typeof closeSoil === 'function') closeSoil();
-
-      if(!aSoil && !bSoil){
-        // Both are trees → use current active tree
-        // already activeId
-      } else if(aSoil && !bSoil){
-        // A is soil, B is tree → switch to that tree
-        activeId = stateB.treeId || activeId;
-        if(activeId) touchRecent(activeId);
-        selectedId = null;
-        render();
-      } else if(!aSoil && bSoil){
-        // A is tree, B is soil → keep A's tree
-        activeId = stateA.treeId || activeId;
-        if(activeId) touchRecent(activeId);
-        selectedId = null;
-        render();
-      } else {
-        // Both are soil → empty canvas
-        const canvas = document.getElementById('canvas');
-        if(canvas) canvas.style.display = '';
-        activeId = null;
-        render();
-      }
-
-      document.body.classList.add('no-tab-mode');
-
-      // Brief pulse animation on ring
-      ringBtn.animate([
-        {transform:'translate(-50%,-50%) scale(1)'},
-        {transform:'translate(-50%,-50%) scale(1.25)'},
-        {transform:'translate(-50%,-50%) scale(1)'}
-      ], {duration:320, easing:'cubic-bezier(.34,1.4,.64,1)'});
-    }
-
-    // ── No-tab → Two-tab ──
-    function _switchToTwoTab(){
-      if(!window._getActiveTab || !window._getTabState) return;
-      const stateA = window._getTabState('a');
-      const stateB = window._getTabState('b');
-
-      // active tree goes to the right (tab B), soil only goes to the left (tab A)
-      stateB.treeId   = activeId || stateB.treeId;
-      stateB.soilOnly = false;
-      stateB.selId    = selectedId || null;
-      stateB.scrollY  = window.scrollY;
-
-      stateA.soilOnly = true;
-      stateA.selId    = null;
-      stateA.scrollY  = 0;
-
-      document.body.classList.remove('no-tab-mode');
-
-      // Switch to tab A (Soil) so tab-bar reappears with Soil on left.
-      // switchToTab guards against same-tab switches, so force activeTab to 'b'
-      // first so the switch to 'a' always executes properly.
-      if(typeof window.switchToTab === 'function'){
-        if(window._getActiveTab && window._getActiveTab() === 'a'){
-          window.switchToTab('b');
-        }
-        window.switchToTab('a');
-      }
-
-      // Brief pulse animation on ring
-      ringBtn.animate([
-        {transform:'translate(-50%,-50%) scale(1)'},
-        {transform:'translate(-50%,-50%) scale(1.25)'},
-        {transform:'translate(-50%,-50%) scale(1)'}
-      ], {duration:320, easing:'cubic-bezier(.34,1.4,.64,1)'});
-    }
-
-    // ── Single-tap logic ──
-    // Because touchstart calls preventDefault, the browser won't fire a synthetic
-    // 'click' after touchend. We drive the tap ourselves from touchend.
-    ringBtn.addEventListener('touchend', e => {
-      e.preventDefault();
-      _lpEnd();
-      if(_lpFired){ _lpFired = false; return; } // long-press already consumed
-      _handleTap();
-    }, {passive: false});
-
-    // Mouse click fallback (desktop)
-    ringBtn.addEventListener('click', function(e){
-      // On touch devices this synthetic click won't fire (touchstart has preventDefault).
-      // On mouse devices, fire tap if long-press didn't fire.
-      if(_lpFired){ _lpFired = false; return; }
-      _handleTap();
-    });
-
-    function _handleTap(){
-      // In no-tab mode, single tap does nothing
-      if(document.body.classList.contains('no-tab-mode')) return;
-
-      // Read current tab state via the globals exposed by the dual-tab IIFE.
-      if(!window._getActiveTab || !window._getTabState || !window.switchToTab) return;
-
-      const currentActive = window._getActiveTab(); // 'a' | 'b'
-      const stateA = window._getTabState('a');
-      const stateB = window._getTabState('b');
-
-      let rightTreeId = null;
-      let rightSelId  = null;
-      let rightScrollY = 0;
-
-      if(currentActive === 'b' && !stateB.soilOnly && stateB.treeId){
-        rightTreeId  = stateB.treeId;
-        rightSelId   = stateB.selId;
-        rightScrollY = stateB.scrollY;
-      } else if(currentActive === 'a' && !stateA.soilOnly && stateA.treeId){
-        rightTreeId  = stateA.treeId;
-        rightSelId   = stateA.selId;
-        rightScrollY = stateA.scrollY;
-      } else {
-        const fallback = stateB.soilOnly ? stateA : stateB;
-        rightTreeId  = fallback.treeId;
-        rightSelId   = fallback.selId;
-        rightScrollY = fallback.scrollY;
-      }
-
-      stateB.treeId   = rightTreeId;
-      stateB.selId    = rightSelId;
-      stateB.scrollY  = rightScrollY;
-      stateB.soilOnly = false;
-
-      stateA.soilOnly = true;
-
-      document.body.classList.add('tab-ring-set');
-      document.body.classList.add('soil-ring-active');
-
-      if(currentActive === 'b'){
-        window.switchToTab('a');
-      } else {
-        const _canvas = document.getElementById('canvas');
-        if(_canvas) _canvas.style.display = 'none';
-        if(typeof openSoil === 'function') openSoil();
-        if(typeof window._updateTabLabels === 'function') window._updateTabLabels();
-      }
+  // ── Mode toggle ──
+  function _toggleTabMode(){
+    const isNoTab = document.body.classList.contains('no-tab-mode');
+    if(isNoTab){
+      _switchToTwoTab();
+    } else {
+      _switchToNoTab();
     }
   }
+  // Expose for the book-icon hold trigger
+  window._toggleTabMode = _toggleTabMode;
+
+  // ── Two-tab → No-tab ──
+  function _switchToNoTab(){
+    // Determine which tree to show in no-tab mode:
+    // - Two tabs are tree: use the current active tree
+    // - One tab is soil: use the only (non-soil) tree
+    // - Two tabs are soil: no tree (show canvas background empty)
+    if(!window._getActiveTab || !window._getTabState) return;
+    const stateA = window._getTabState('a');
+    const stateB = window._getTabState('b');
+    const aSoil  = stateA.soilOnly;
+    const bSoil  = stateB.soilOnly;
+
+    // Close soil if open
+    const soilOv = document.getElementById('soil-ov');
+    if(soilOv && soilOv.classList.contains('open') && typeof closeSoil === 'function') closeSoil();
+
+    if(!aSoil && !bSoil){
+      // Both are trees → use current active tree
+      // already activeId
+    } else if(aSoil && !bSoil){
+      // A is soil, B is tree → switch to that tree
+      activeId = stateB.treeId || activeId;
+      if(activeId) touchRecent(activeId);
+      selectedId = null;
+      render();
+    } else if(!aSoil && bSoil){
+      // A is tree, B is soil → keep A's tree
+      activeId = stateA.treeId || activeId;
+      if(activeId) touchRecent(activeId);
+      selectedId = null;
+      render();
+    } else {
+      // Both are soil → empty canvas
+      const canvas = document.getElementById('canvas');
+      if(canvas) canvas.style.display = '';
+      activeId = null;
+      render();
+    }
+
+    document.body.classList.add('no-tab-mode');
+  }
+
+  // ── No-tab → Two-tab ──
+  function _switchToTwoTab(){
+    if(!window._getActiveTab || !window._getTabState) return;
+    const stateA = window._getTabState('a');
+    const stateB = window._getTabState('b');
+
+    // active tree goes to the right (tab B), soil only goes to the left (tab A)
+    stateB.treeId   = activeId || stateB.treeId;
+    stateB.soilOnly = false;
+    stateB.selId    = selectedId || null;
+    stateB.scrollY  = window.scrollY;
+
+    stateA.soilOnly = true;
+    stateA.selId    = null;
+    stateA.scrollY  = 0;
+
+    document.body.classList.remove('no-tab-mode');
+
+    // Switch to tab A (Soil) so tab-bar reappears with Soil on left.
+    // switchToTab guards against same-tab switches, so force activeTab to 'b'
+    // first so the switch to 'a' always executes properly.
+    if(typeof window.switchToTab === 'function'){
+      if(window._getActiveTab && window._getActiveTab() === 'a'){
+        window.switchToTab('b');
+      }
+      window.switchToTab('a');
+    }
+  }
+})();
+
+// ── Book hold-trigger: 1s deliberate hold → green fill → haptic → split-pane toggle ──
+(function(){
+  const btn = document.getElementById('book-hold-trigger');
+  if(!btn) return;
+  const fillRing = btn.querySelector('.bht-ring-fill');
+  const CIRC = 2 * Math.PI * 16; // r=16 -> ~100.53
+  const HOLD_MS = 1000;
+
+  let rafId = null;
+  let startTime = null;
+  let holding = false;
+
+  function setFill(progress){
+    const offset = CIRC * (1 - progress);
+    fillRing.style.strokeDashoffset = offset.toFixed(2);
+  }
+
+  function step(now){
+    if(!holding) return;
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / HOLD_MS, 1);
+    setFill(progress);
+    if(progress >= 1){
+      _complete();
+      return;
+    }
+    rafId = requestAnimationFrame(step);
+  }
+
+  function _vibrate(pattern){
+    if(navigator.vibrate){ try{ navigator.vibrate(pattern); }catch(e){} }
+  }
+
+  function _start(){
+    if(holding) return;
+    holding = true;
+    btn.classList.add('holding');
+    setFill(0);
+    startTime = performance.now();
+    rafId = requestAnimationFrame(step);
+  }
+
+  function _cancel(){
+    if(!holding) return;
+    holding = false;
+    if(rafId) cancelAnimationFrame(rafId);
+    rafId = null;
+    btn.classList.remove('holding');
+    setFill(0);
+    _showToast();
+  }
+
+  let _toastTimer = null;
+  function _showToast(){
+    const toast = document.getElementById('bht-toast');
+    if(!toast) return;
+    toast.classList.add('show');
+    if(_toastTimer) clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+  }
+
+  function _complete(){
+    holding = false;
+    if(rafId) cancelAnimationFrame(rafId);
+    rafId = null;
+    btn.classList.remove('holding');
+    setFill(1);
+    _vibrate(40); // haptic buzz on success
+
+    // Brief unlocked glow + pulse, then toggle to two-tab (split-pane) view.
+    btn.classList.add('unlocked');
+    btn.classList.add('pulse');
+    setTimeout(() => btn.classList.remove('pulse'), 320);
+
+    if(typeof window._toggleTabMode === 'function'){
+      // Only unlock split-pane if currently in no-tab mode; if already split,
+      // a deliberate hold collapses it back to single-pane.
+      window._toggleTabMode();
+    }
+
+    // Reset ring fill shortly after, keep brief glow on icon
+    setTimeout(() => {
+      setFill(0);
+      btn.classList.remove('unlocked');
+    }, 450);
+  }
+
+  // Pointer/touch handling — mirrors the ring's approach for cross-device support.
+  btn.addEventListener('touchstart', e => { e.preventDefault(); _start(); }, {passive:false});
+  btn.addEventListener('touchend',   e => { e.preventDefault(); _cancel(); }, {passive:false});
+  btn.addEventListener('touchcancel', () => { _cancel(); }, {passive:true});
+
+  btn.addEventListener('mousedown', _start);
+  btn.addEventListener('mouseup',   _cancel);
+  btn.addEventListener('mouseleave', _cancel);
+
+  btn.addEventListener('contextmenu', e => { e.preventDefault(); }, {passive:false});
+
+  // Fallback: ensure a plain click (e.g. assistive tech, or any device where
+  // touchstart/mousedown didn't register as a hold) also surfaces the hint.
+  btn.addEventListener('click', () => {
+    if(!holding) _showToast();
+  });
 })();
 
 /* ─── SOIL ─── */
@@ -15224,11 +15209,9 @@ document.getElementById('vault-name-save-btn').addEventListener('click', async()
   nameErr.textContent='';
   const rawName=(document.getElementById('vault-name-input').value||'').trim()||'Untitled Forest';
   const safeName=rawName.replace(/[^a-zA-Z0-9\-_ ]/g,'').replace(/\s+/g,'-').toLowerCase()||'untitled-forest';
-  // Reset to a truly fresh forest with the chosen name
+  // Reset to a truly fresh forest — tree and card keep canonical defaults
   _uid=0;
   forest=mkIntroForest();
-  forest[0].name=rawName;
-  forest[0].roots[0].title='🌳 '+rawName;
   activeId=forest[0].id;
   const suggestedFileName=safeName+'.json';
 
@@ -15239,6 +15222,9 @@ document.getElementById('vault-name-save-btn').addEventListener('click', async()
         types:[{description:'Arbor Forest',accept:{'application/json':['.json']}}]
       });
       _lastFileHandle=fh;
+      // Clear library before writing so the new forest starts clean
+      _saveImports([]);
+      if(_updateImportsBtn)_updateImportsBtn();
       // Write initial empty forest immediately so the file exists
       const data=buildExportPayload();
       const writable=await fh.createWritable();
@@ -15260,12 +15246,23 @@ document.getElementById('vault-name-save-btn').addEventListener('click', async()
       // SecurityError: fall through below
     }
   }
-  // Browser doesn't support showSaveFilePicker (or it was blocked) — start fresh without a handle
+  // Browser doesn't support showSaveFilePicker (or it was blocked) — start fresh and download JSON
   _uid=0;
   forest=mkIntroForest();
-  forest[0].name=rawName;
-  forest[0].roots[0].title='🌳 '+rawName;
   activeId=forest[0].id;
+  // Clear library so the new forest starts clean
+  _saveImports([]);
+  if(_updateImportsBtn)_updateImportsBtn();
+  // Trigger a download of the fresh forest JSON file
+  {
+    const freshData=buildExportPayload();
+    const blob=new Blob([freshData],{type:'application/json'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=suggestedFileName;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
   closeVault();
   render();
 });
