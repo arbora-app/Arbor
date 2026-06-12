@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Arbor</title>
 <style>:root{--f-display:'Palatino Linotype','Book Antiqua',Palatino,'Georgia',serif;--f-body:Georgia,'Times New Roman',Times,serif;--bg-page:#1E1008;--bg-grad:radial-gradient(ellipse at 25% 0%,#2E1A0A 0%,#1A0E06 70%);--hdr-bg:rgba(14,6,2,.96);--hdr-border:#38200C;--text-main:#E2D8C0}body.mode-leaves{--bg-page:#1E1008;--bg-grad:radial-gradient(ellipse at 25% 0%,#2E1A0A 0%,#1A0E06 70%);--hdr-bg:rgba(14,6,2,.96);--hdr-border:#38200C;--text-main:#E2D8C0}body.mode-roots{--bg-page:#E2D8C0;--bg-grad:radial-gradient(ellipse at 25% 0%,#EDE0C4 0%,#D4C8A0 70%);--hdr-bg:rgba(226,216,192,.97);--hdr-border:#B0A070;--text-main:#1E1008}body.mode-mist{--bg-page:#ffffff;--bg-grad:#ffffff;--hdr-bg:rgba(255,255,255,.97);--hdr-border:#cccccc;--text-main:#111111}*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html,body{min-height:100vh;background:var(--bg-page);color:var(--text-main);font-family:var(--f-body);overflow-x:hidden;-webkit-tap-highlight-color:transparent;transition:background .25s,color .25s}body{background:var(--bg-grad)}#hdr{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr-bg);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:none;padding:8px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:58px;transition:transform .32s cubic-bezier(.4,0,1,1)}.logo{display:flex;align-items:center;gap:7px;flex-shrink:0;cursor:pointer;-webkit-tap-highlight-color:transparent;min-width:fit-content;position:relative;overflow:visible}
-.logo-img{height:42px;width:auto;max-width:none;object-fit:contain;transition:transform .15s;filter:drop-shadow(0 1px 5px rgba(0,0,0,.5))}.logo:active .logo-img{transform:scale(.93)}.logo-name{display:none}#tree-name-wrap{flex:1;display:flex;align-items:center;justify-content:center;gap:3px;min-width:0;}#hdr-sync-btn{background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:5px;max-width:calc(100% - 28px);padding:3px 6px;border-radius:8px;transition:background .14s;-webkit-tap-highlight-color:transparent}#hdr-sync-btn:hover{background:rgba(255,255,255,.08)}body.mode-roots #hdr-sync-btn:hover{background:rgba(0,0,0,.07)}body.mode-mist #hdr-sync-btn:hover{background:rgba(0,0,0,.06)}#hdr-sync-btn:active{transform:scale(.95)}#hdr-tree-name{font-family:var(--f-display);font-weight:700;font-size:.95rem;color:#C8C0A0;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:20px;text-align:center;pointer-events:none}body.mode-roots #hdr-tree-name{color:#4A3010}body.mode-mist #hdr-tree-name{color:#222}#hdr-sync-dot{width:6px;height:6px;border-radius:50%;background:#E07030;flex-shrink:0;display:none;box-shadow:0 0 5px rgba(220,100,40,.7)}body.mode-mist #hdr-sync-dot{background:#C05820}body.mode-roots #hdr-sync-dot{background:#A04010}#hdr-sync-dot.show{display:block}#btn-tree-dd{background:none;border:1px solid rgba(255,255,255,.18);border-radius:6px;cursor:pointer;font-size:.88rem;color:#C8A060;padding:2px 7px;opacity:.85;transition:opacity .14s,transform .14s,background .14s,border-color .14s;flex-shrink:0;line-height:1.4;font-weight:600}#btn-tree-dd:hover{opacity:1;background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.35)}#btn-tree-dd.open{transform:rotate(180deg);opacity:1}#tree-dd{position:fixed;z-index:700;background:#1A2808;border:1px solid #4A6818;border-radius:10px;padding:5px 0;box-shadow:0 10px 38px rgba(0,0,0,.6);min-width:200px;display:none;animation:ctxIn .1s ease-out;max-height:320px;overflow-y:auto}body.mode-mist #tree-dd{background:#f5f5f5;border-color:#ccc;box-shadow:0 6px 24px rgba(0,0,0,.18)}#tree-dd.open{display:block}.tree-dd-section{padding:5px 14px 3px;font-size:.68rem;color:#5A7830;letter-spacing:.08em;text-transform:uppercase;font-family:var(--f-display)}body.mode-mist .tree-dd-section{color:#999}.tree-dd-item{padding:9px 16px;font-family:var(--f-body);font-size:.82rem;color:#C0D888;cursor:pointer;transition:background .11s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:8px}.tree-dd-item:hover{background:rgba(255,255,255,.08)}.tree-dd-item.active{color:#D8ECA0;font-weight:600;background:rgba(70,100,20,.2)}.tree-dd-card-item{padding:7px 16px 7px 28px;font-family:var(--f-body);font-size:.78rem;color:#A0B870;cursor:pointer;transition:background .11s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tree-dd-card-item:hover{background:rgba(255,255,255,.06)}.tree-dd-card-item.selected-card{color:#D8ECA0;font-weight:600;background:rgba(70,100,20,.15)}body.mode-mist .tree-dd-item{color:#333}body.mode-mist .tree-dd-item.active{color:#000;background:rgba(0,0,0,.07)}body.mode-mist .tree-dd-card-item{color:#555}body.mode-mist .tree-dd-card-item.selected-card{color:#000;background:rgba(0,0,0,.06)}.tree-dd-sep{border:none;border-top:1px solid rgba(255,255,255,.08);margin:3px 0}body.mode-mist .tree-dd-sep{border-top-color:rgba(0,0,0,.1)}.tree-dd-forest{padding:8px 16px;font-family:var(--f-body);font-size:.79rem;color:#8AAA50;cursor:pointer;transition:background .11s}.tree-dd-forest:hover{background:rgba(255,255,255,.06)}#mode-sel{flex-shrink:0;display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.15);border-radius:20px;padding:3px 5px}body.mode-roots #mode-sel{background:rgba(0,0,0,.07);border-color:rgba(0,0,0,.2)}body.mode-mist #mode-sel{background:rgba(0,0,0,.05);border-color:#bbb}.mode-btn{background:none;border:none;cursor:pointer;font-size:.72rem;padding:4px 7px;border-radius:14px;transition:background .15s,transform .15s;opacity:.5;line-height:1;white-space:nowrap}.mode-btn:hover{opacity:.8}.mode-btn.active{opacity:1;transform:scale(1.08)}body.mode-leaves .mode-btn[data-mode="leaves"]{background:rgba(100,160,30,.35);color:#C8EE80}body.mode-roots .mode-btn[data-mode="roots"]{background:rgba(60,40,10,.25);color:#5A3A10}body.mode-mist .mode-btn[data-mode="mist"]{background:rgba(0,0,0,.12);color:#222}#canvas{max-width:680px;margin:0 auto;padding:82px 16px 140px;touch-action:pan-y}#empty{text-align:center;padding:80px 20px;color:#806040;opacity:.45;font-family:var(--f-display);font-size:.95rem;font-style:italic}body.mode-roots #empty{color:#8A7050}body.mode-mist #empty{color:#888}.bw{margin-bottom:5px;position:relative;animation:bIn .16s ease-out both}.no-drag-anim .bw{animation:none!important}.no-drag-anim .bc{transition:none!important}@keyframes bIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}.bc{border-radius:9px;border:1.5px solid;position:relative;transition:box-shadow .14s,transform .2s cubic-bezier(.34,1.4,.64,1),opacity .14s;user-select:none;-webkit-user-select:none;cursor:pointer}.bc.ghost-src{opacity:.18}.bw.drop-before::before,.bw.drop-after::after{content:'';display:block;height:3px;border-radius:2px;background:#AACE68;box-shadow:0 0 7px #AACE68;margin:2px 0}.bc.drop-nest{box-shadow:0 0 0 2px #AACE68,0 4px 18px rgba(0,0,0,.35)!important}.bc.selected{filter:brightness(1.55) saturate(1.12);box-shadow:0 0 0 2.5px #C8A028,0 0 32px rgba(200,160,40,.50),inset 0 0 0 1px rgba(240,200,60,.15)!important;transform:scale(1.016);z-index:2}body.mode-leaves .bc.selected .bt{color:#FFFBE8!important;text-shadow:0 1px 4px rgba(0,0,0,.55);font-weight:700!important}body.mode-leaves .bc.selected .bt.d0{font-size:1.12em!important}body.mode-leaves .bc.selected .bt.d1{font-size:1.08em!important}body.mode-leaves .bc.selected .bt.d2{font-size:1.04em!important;font-style:normal!important}body.mode-leaves .bc.selected .bn{color:#F0EDD8!important;opacity:1!important;font-size:.87em!important;line-height:1.6!important}body.mode-leaves .bc.selected .tg{color:#F0EDD8!important;opacity:.9!important}body.mode-leaves .bn{opacity:.88!important}body.mode-roots .bc.selected{filter:brightness(1.35) saturate(1.08);box-shadow:0 0 0 2.5px #7A5010,0 0 22px rgba(100,60,10,.35)!important}body.mode-roots .bc.selected .bt{color:#0E0800!important;text-shadow:none;font-weight:700!important}body.mode-roots .bc.selected .bt.d2{font-style:normal!important}body.mode-roots .bc.selected .bn{color:#1A0E04!important;opacity:1!important;font-size:.87em!important}body.mode-mist .bc.selected{background:#F2E8C9!important;border:none!important;box-shadow:0 2px 12px rgba(0,0,0,.10)!important;filter:none!important;transform:none!important}body.mode-mist .bc.selected .bt{color:#2B2B2B!important;font-weight:700!important}body.mode-mist .bc.selected .bn{color:#2B2B2B!important;opacity:.75!important}.bh{display:flex;align-items:flex-start;padding:10px 11px 0 11px;gap:5px}.dh{flex-shrink:0;display:flex;flex-direction:column;gap:3px;padding-top:4px;opacity:.25;transition:opacity .14s;touch-action:none;cursor:grab}.bc:hover .dh,.bc.selected .dh{opacity:.55}.dh:hover{opacity:.9!important}.dh span{display:block;width:13px;height:2.5px;border-radius:1.5px;background:currentColor}.tg{flex-shrink:0;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.15);border-radius:6px;cursor:pointer;font-size:.85rem;color:inherit;opacity:.65;transition:transform .18s,opacity .14s,background .14s;padding:3px 6px;margin-top:0px;touch-action:manipulation;line-height:1;min-width:24px;text-align:center}.tg:hover{opacity:1;background:rgba(255,255,255,.15)}.tg.cl{transform:rotate(-90deg)}body.mode-roots .tg{background:rgba(0,0,0,.08);border-color:rgba(0,0,0,.15)}body.mode-mist .tg{background:rgba(0,0,0,.06);border-color:#ccc;color:#333}.tg-ph{width:24px;flex-shrink:0}.bt{flex:1;line-height:1.3;color:inherit;outline:none;min-width:0;word-break:break-word;cursor:default}.bt.d0{font-family:var(--f-display);font-weight:800;font-size:1.04em;letter-spacing:-.01em}.bt.d1{font-family:var(--f-body);font-weight:500;font-size:1em;letter-spacing:.004em}.bt.d2{font-family:var(--f-body);font-weight:400;font-size:.96em;font-style:italic}.bt.d3{font-family:var(--f-body);font-weight:300;font-size:.94em;letter-spacing:.01em}.bt.d4{font-family:var(--f-body);font-weight:300;font-size:.91em;font-style:italic;letter-spacing:.014em}.bt:empty::before{content:attr(data-ph);opacity:.25;pointer-events:none;font-style:italic}.bn{padding:4px 11px 0 33px;font-family:var(--f-body);font-size:.81em;line-height:1.55;color:inherit;opacity:.62;max-height:6.2em;overflow:hidden;word-break:break-word;position:relative}.bn.is-truncated{-webkit-mask-image:linear-gradient(to bottom,black 45%,transparent 100%);mask-image:linear-gradient(to bottom,black 45%,transparent 100%)}.bn.is-truncated::after{content:'…';position:absolute;bottom:0;right:11px;font-size:.95em;color:inherit;pointer-events:none;line-height:1.55;opacity:.55}.bn p{margin:0 0 .25em}.bn p:last-child{margin-bottom:0}.bn ul,.bn ol{margin:.1em 0 .25em;padding-left:1.4em}.bn li{margin-bottom:.1em}.bn strong{font-weight:700}.bn em{font-style:italic}.bn h1,.bn h2,.bn h3{font-size:1em;font-weight:700;margin:0 0 .2em}.bn:empty::before{content:attr(data-ph);opacity:.25;pointer-events:none}.bp{height:9px}.bk{padding:0 7px 7px 15px;border-top:1px solid rgba(255,255,255,.05);margin-top:3px}.bk.hi{display:none}.bki{padding-top:5px}body.mode-mist .bk{border-top-color:rgba(0,0,0,.07)}body.mode-mist .bc{background:transparent!important;border-color:transparent!important;border:none!important;box-shadow:none!important;color:#111!important}body.mode-mist .bc.selected{background:#F2E8C9!important;border:none!important;box-shadow:0 2px 12px rgba(0,0,0,.10)!important;filter:none!important;transform:none!important;color:#2B2B2B!important}body.mode-mist .dh{display:none}body.mode-mist .tg-ph{display:none}body.mode-mist .bk{border-top:none!important;padding-left:16px}body.mode-mist .bt{cursor:default!important;font-family:var(--f-display)}body.mode-mist .bt.d0{font-weight:800;font-size:1.1em;color:#111}body.mode-mist .bt.d1{font-weight:700;font-size:1.0em}body.mode-mist .bt.d2{font-weight:400;font-size:.97em;font-style:italic}body.mode-mist .bt.d3{font-weight:400;font-size:.95em}body.mode-mist .bt.d4{font-weight:300;font-size:.93em;font-style:italic}body.mode-mist .bn{opacity:.7;padding-left:16px;display:block;max-height:none;overflow:visible}body.mode-mist .bp{height:5px}body.mode-mist .bh{padding-left:6px}body.mode-mist .bt,body.mode-mist .bn{user-select:none;-webkit-user-select:none}
+.logo-img{height:42px;width:auto;max-width:none;object-fit:contain;transition:transform .15s;filter:drop-shadow(0 1px 5px rgba(0,0,0,.5))}.logo:active .logo-img{transform:scale(.93)}.logo-name{display:none}#tree-name-wrap{flex:1;display:flex;align-items:center;justify-content:center;gap:3px;min-width:0;}#hdr-sync-btn{background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:5px;max-width:calc(100% - 28px);padding:3px 6px;border-radius:8px;transition:background .14s;-webkit-tap-highlight-color:transparent}#hdr-sync-btn:hover{background:rgba(255,255,255,.08)}body.mode-roots #hdr-sync-btn:hover{background:rgba(0,0,0,.07)}body.mode-mist #hdr-sync-btn:hover{background:rgba(0,0,0,.06)}#hdr-sync-btn:active{transform:scale(.95)}#hdr-tree-name{font-family:var(--f-display);font-weight:700;font-size:.95rem;color:#C8C0A0;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:20px;text-align:center;pointer-events:none}body.mode-roots #hdr-tree-name{color:#4A3010}body.mode-mist #hdr-tree-name{color:#222}#hdr-sync-dot{width:6px;height:6px;border-radius:50%;background:#E07030;flex-shrink:0;display:none;box-shadow:0 0 5px rgba(220,100,40,.7)}body.mode-mist #hdr-sync-dot{background:#C05820}body.mode-roots #hdr-sync-dot{background:#A04010}#hdr-sync-dot.show{display:block}#btn-tree-dd{background:none;border:1px solid rgba(255,255,255,.18);border-radius:6px;cursor:pointer;font-size:.88rem;color:#C8A060;padding:2px 7px;opacity:.85;transition:opacity .14s,transform .14s,background .14s,border-color .14s;flex-shrink:0;line-height:1.4;font-weight:600}#btn-tree-dd:hover{opacity:1;background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.35)}#btn-tree-dd.open{transform:rotate(180deg);opacity:1}#tree-dd{position:fixed;z-index:700;background:#1A2808;border:1px solid #4A6818;border-radius:10px;padding:5px 0;box-shadow:0 10px 38px rgba(0,0,0,.6);min-width:200px;display:none;animation:ctxIn .1s ease-out;max-height:320px;overflow-y:auto}body.mode-mist #tree-dd{background:#f5f5f5;border-color:#ccc;box-shadow:0 6px 24px rgba(0,0,0,.18)}#tree-dd.open{display:block}.tree-dd-section{padding:5px 14px 3px;font-size:.68rem;color:#5A7830;letter-spacing:.08em;text-transform:uppercase;font-family:var(--f-display)}body.mode-mist .tree-dd-section{color:#999}.tree-dd-item{padding:9px 16px;font-family:var(--f-body);font-size:.82rem;color:#C0D888;cursor:pointer;transition:background .11s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:8px}.tree-dd-item:hover{background:rgba(255,255,255,.08)}.tree-dd-item.active{color:#D8ECA0;font-weight:600;background:rgba(70,100,20,.2)}.tree-dd-card-item{padding:7px 16px 7px 28px;font-family:var(--f-body);font-size:.78rem;color:#A0B870;cursor:pointer;transition:background .11s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tree-dd-card-item:hover{background:rgba(255,255,255,.06)}.tree-dd-card-item.selected-card{color:#D8ECA0;font-weight:600;background:rgba(70,100,20,.15)}body.mode-mist .tree-dd-item{color:#333}body.mode-mist .tree-dd-item.active{color:#000;background:rgba(0,0,0,.07)}body.mode-mist .tree-dd-card-item{color:#555}body.mode-mist .tree-dd-card-item.selected-card{color:#000;background:rgba(0,0,0,.06)}.tree-dd-sep{border:none;border-top:1px solid rgba(255,255,255,.08);margin:3px 0}body.mode-mist .tree-dd-sep{border-top-color:rgba(0,0,0,.1)}.tree-dd-forest{padding:8px 16px;font-family:var(--f-body);font-size:.79rem;color:#8AAA50;cursor:pointer;transition:background .11s}.tree-dd-forest:hover{background:rgba(255,255,255,.06)}#mode-sel{flex-shrink:0;display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.15);border-radius:20px;padding:3px 5px}body.mode-roots #mode-sel{background:rgba(0,0,0,.07);border-color:rgba(0,0,0,.2)}body.mode-mist #mode-sel{background:rgba(0,0,0,.05);border-color:#bbb}.mode-btn{background:none;border:none;cursor:pointer;font-size:.72rem;padding:4px 7px;border-radius:14px;transition:background .15s,transform .15s;opacity:.5;line-height:1;white-space:nowrap}.mode-btn:hover{opacity:.8}.mode-btn.active{opacity:1;transform:scale(1.08)}body.mode-leaves .mode-btn[data-mode="leaves"]{background:rgba(100,160,30,.35);color:#C8EE80}body.mode-roots .mode-btn[data-mode="roots"]{background:rgba(60,40,10,.25);color:#5A3A10}body.mode-mist .mode-btn[data-mode="mist"]{background:rgba(0,0,0,.12);color:#222}#canvas{max-width:680px;margin:0 auto;padding:82px 16px 170px;touch-action:pan-y}#empty{text-align:center;padding:80px 20px;color:#806040;opacity:.45;font-family:var(--f-display);font-size:.95rem;font-style:italic}body.mode-roots #empty{color:#8A7050}body.mode-mist #empty{color:#888}.bw{margin-bottom:5px;position:relative;animation:bIn .16s ease-out both}.no-drag-anim .bw{animation:none!important}.no-drag-anim .bc{transition:none!important}@keyframes bIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}.bc{border-radius:9px;border:1.5px solid;position:relative;transition:box-shadow .14s,transform .2s cubic-bezier(.34,1.4,.64,1),opacity .14s;user-select:none;-webkit-user-select:none;cursor:pointer}.bc.ghost-src{opacity:.18}.bw.drop-before::before,.bw.drop-after::after{content:'';display:block;height:3px;border-radius:2px;background:#AACE68;box-shadow:0 0 7px #AACE68;margin:2px 0}.bc.drop-nest{box-shadow:0 0 0 2px #AACE68,0 4px 18px rgba(0,0,0,.35)!important}.bc.selected{filter:brightness(1.55) saturate(1.12);box-shadow:0 0 0 2.5px #C8A028,0 0 32px rgba(200,160,40,.50),inset 0 0 0 1px rgba(240,200,60,.15)!important;transform:scale(1.016);z-index:2}body.mode-leaves .bc.selected .bt{color:#FFFBE8!important;text-shadow:0 1px 4px rgba(0,0,0,.55);font-weight:700!important}body.mode-leaves .bc.selected .bt.d0{font-size:1.12em!important}body.mode-leaves .bc.selected .bt.d1{font-size:1.08em!important}body.mode-leaves .bc.selected .bt.d2{font-size:1.04em!important;font-style:normal!important}body.mode-leaves .bc.selected .bn{color:#F0EDD8!important;opacity:1!important;font-size:.87em!important;line-height:1.6!important}body.mode-leaves .bc.selected .tg{color:#F0EDD8!important;opacity:.9!important}body.mode-leaves .bn{opacity:.88!important}body.mode-roots .bc.selected{filter:brightness(1.35) saturate(1.08);box-shadow:0 0 0 2.5px #7A5010,0 0 22px rgba(100,60,10,.35)!important}body.mode-roots .bc.selected .bt{color:#0E0800!important;text-shadow:none;font-weight:700!important}body.mode-roots .bc.selected .bt.d2{font-style:normal!important}body.mode-roots .bc.selected .bn{color:#1A0E04!important;opacity:1!important;font-size:.87em!important}body.mode-mist .bc.selected{background:#F2E8C9!important;border:none!important;box-shadow:0 2px 12px rgba(0,0,0,.10)!important;filter:none!important;transform:none!important}body.mode-mist .bc.selected .bt{color:#2B2B2B!important;font-weight:700!important}body.mode-mist .bc.selected .bn{color:#2B2B2B!important;opacity:.75!important}.bh{display:flex;align-items:flex-start;padding:10px 11px 0 11px;gap:5px}.dh{flex-shrink:0;display:flex;flex-direction:column;gap:3px;padding-top:4px;opacity:.25;transition:opacity .14s;touch-action:none;cursor:grab}.bc:hover .dh,.bc.selected .dh{opacity:.55}.dh:hover{opacity:.9!important}.dh span{display:block;width:13px;height:2.5px;border-radius:1.5px;background:currentColor}.tg{flex-shrink:0;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.15);border-radius:6px;cursor:pointer;font-size:.85rem;color:inherit;opacity:.65;transition:transform .18s,opacity .14s,background .14s;padding:3px 6px;margin-top:0px;touch-action:manipulation;line-height:1;min-width:24px;text-align:center}.tg:hover{opacity:1;background:rgba(255,255,255,.15)}.tg.cl{transform:rotate(-90deg)}body.mode-roots .tg{background:rgba(0,0,0,.08);border-color:rgba(0,0,0,.15)}body.mode-mist .tg{background:rgba(0,0,0,.06);border-color:#ccc;color:#333}.tg-ph{width:24px;flex-shrink:0}.bt{flex:1;line-height:1.3;color:inherit;outline:none;min-width:0;word-break:break-word;cursor:default}.bt.d0{font-family:var(--f-display);font-weight:800;font-size:1.04em;letter-spacing:-.01em}.bt.d1{font-family:var(--f-body);font-weight:500;font-size:1em;letter-spacing:.004em}.bt.d2{font-family:var(--f-body);font-weight:400;font-size:.96em;font-style:italic}.bt.d3{font-family:var(--f-body);font-weight:300;font-size:.94em;letter-spacing:.01em}.bt.d4{font-family:var(--f-body);font-weight:300;font-size:.91em;font-style:italic;letter-spacing:.014em}.bt:empty::before{content:attr(data-ph);opacity:.25;pointer-events:none;font-style:italic}.bn{padding:4px 11px 0 33px;font-family:var(--f-body);font-size:.81em;line-height:1.55;color:inherit;opacity:.62;max-height:6.2em;overflow:hidden;word-break:break-word;position:relative}.bn.is-truncated{-webkit-mask-image:linear-gradient(to bottom,black 45%,transparent 100%);mask-image:linear-gradient(to bottom,black 45%,transparent 100%)}.bn.is-truncated::after{content:'…';position:absolute;bottom:0;right:11px;font-size:.95em;color:inherit;pointer-events:none;line-height:1.55;opacity:.55}.bn p{margin:0 0 .25em}.bn p:last-child{margin-bottom:0}.bn ul,.bn ol{margin:.1em 0 .25em;padding-left:1.4em}.bn li{margin-bottom:.1em}.bn strong{font-weight:700}.bn em{font-style:italic}.bn h1,.bn h2,.bn h3{font-size:1em;font-weight:700;margin:0 0 .2em}.bn:empty::before{content:attr(data-ph);opacity:.25;pointer-events:none}.bp{height:9px}.bk{padding:0 7px 7px 15px;border-top:1px solid rgba(255,255,255,.05);margin-top:3px}.bk.hi{display:none}.bki{padding-top:5px}body.mode-mist .bk{border-top-color:rgba(0,0,0,.07)}body.mode-mist .bc{background:transparent!important;border-color:transparent!important;border:none!important;box-shadow:none!important;color:#111!important}body.mode-mist .bc.selected{background:#F2E8C9!important;border:none!important;box-shadow:0 2px 12px rgba(0,0,0,.10)!important;filter:none!important;transform:none!important;color:#2B2B2B!important}body.mode-mist .dh{display:none}body.mode-mist .tg-ph{display:none}body.mode-mist .bk{border-top:none!important;padding-left:16px}body.mode-mist .bt{cursor:default!important;font-family:var(--f-display)}body.mode-mist .bt.d0{font-weight:800;font-size:1.1em;color:#111}body.mode-mist .bt.d1{font-weight:700;font-size:1.0em}body.mode-mist .bt.d2{font-weight:400;font-size:.97em;font-style:italic}body.mode-mist .bt.d3{font-weight:400;font-size:.95em}body.mode-mist .bt.d4{font-weight:300;font-size:.93em;font-style:italic}body.mode-mist .bn{opacity:.7;padding-left:16px;display:block;max-height:none;overflow:visible}body.mode-mist .bp{height:5px}body.mode-mist .bh{padding-left:6px}body.mode-mist .bt,body.mode-mist .bn{user-select:none;-webkit-user-select:none}
 body.mode-mist.mist-text-select .bt,body.mode-mist.mist-text-select .bn{user-select:text;-webkit-user-select:text}body.mode-mist .bc.mist-sel-subtree .bt,body.mode-mist .bc.mist-sel-subtree .bn,body.mode-mist .bc.mist-sel-subtree .bk .bt,body.mode-mist .bc.mist-sel-subtree .bk .bn{user-select:none!important;-webkit-user-select:none!important}
 
 /* ─── DUAL-TAB COMPARISON BAR ─── */
@@ -2464,6 +2464,73 @@ body.mode-mist  .gh-dd-badge{background:rgba(70,130,20,.1);border-color:rgba(70,
 body.mode-roots #soil-mode-picker{border-bottom-color:rgba(0,0,0,.1)}
 body.mode-mist  #soil-mode-picker{border-bottom-color:#e0e0e0}
 
+/* ── Prune mode: mist-style tree inside soil ── */
+#soil-prune-wrap{
+  display:none;flex:1;min-height:0;
+  overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  padding:8px 12px 80px;
+  box-sizing:border-box;
+}
+#soil-prune-wrap.active{display:block;background:#ffffff;}
+/* Replicate every body.mode-mist card rule scoped here */
+#soil-prune-wrap .bc{background:transparent!important;border-color:transparent!important;border:none!important;box-shadow:none!important;color:#111!important}
+#soil-prune-wrap .bc.selected{background:#F2E8C9!important;border:none!important;box-shadow:0 2px 12px rgba(0,0,0,.10)!important;filter:none!important;transform:none!important;color:#2B2B2B!important}
+#soil-prune-wrap .bc.selected .bt{color:#2B2B2B!important;font-weight:700!important}
+#soil-prune-wrap .bc.selected .bn{color:#2B2B2B!important;opacity:.75!important}
+#soil-prune-wrap .dh{display:none!important}
+#soil-prune-wrap .tg-ph{display:none}
+#soil-prune-wrap .tg{background:rgba(0,0,0,.06);border-color:#ccc;color:#333}
+#soil-prune-wrap .bk{border-top:none!important;padding-left:16px}
+#soil-prune-wrap .bt{cursor:default!important;font-family:var(--f-display);color:#111}
+#soil-prune-wrap .bt.d0{font-weight:800;font-size:1.1em}
+#soil-prune-wrap .bt.d1{font-weight:700;font-size:1.0em}
+#soil-prune-wrap .bt.d2{font-weight:400;font-size:.97em;font-style:italic}
+#soil-prune-wrap .bt.d3{font-weight:400;font-size:.95em}
+#soil-prune-wrap .bt.d4{font-weight:300;font-size:.93em;font-style:italic}
+#soil-prune-wrap .bn{opacity:.7;padding-left:16px;display:block;max-height:none;overflow:visible;color:#111}
+#soil-prune-wrap .bp{height:5px}
+#soil-prune-wrap .bh{padding-left:6px}
+#soil-prune-wrap .bt,#soil-prune-wrap .bn{user-select:none;-webkit-user-select:none}
+#soil-prune-wrap .card-quick-actions{display:none!important}
+#soil-prune-wrap .card-ctx-orbital{display:none!important}
+
+/* ── Prune mode footer (Edit button) ── */
+#soil-prune-ftr{
+  display:none;flex-shrink:0;
+  align-items:center;justify-content:flex-end;gap:6px;
+  padding:5px 10px 50px;
+  border-top:1px solid rgba(255,255,255,.07);
+  background:rgba(255,255,255,.03);
+  user-select:none;-webkit-user-select:none;
+}
+#soil-prune-ftr.active{display:flex}
+body.mode-roots #soil-prune-ftr{border-top-color:rgba(0,0,0,.09);background:rgba(0,0,0,.03)}
+body.mode-mist  #soil-prune-ftr,
+#soil-prune-ftr{border-top-color:#e8e8e8;background:#f0f0f0}
+#soil-prune-ftr-hint{
+  font-family:var(--f-display);font-size:.67rem;font-weight:600;
+  letter-spacing:.04em;color:#aaa;opacity:.7;
+  text-transform:uppercase;margin-right:auto;
+}
+#soil-prune-edit-btn{
+  background:none;
+  border:1px solid #bbb;
+  border-radius:8px;
+  cursor:pointer;
+  font-family:var(--f-display);font-size:.68rem;font-weight:700;
+  color:#555;
+  padding:3px 9px;line-height:1.5;
+  letter-spacing:.03em;
+  transition:background .13s,border-color .13s,color .13s,transform .12s;
+  -webkit-tap-highlight-color:transparent;
+  flex-shrink:0;
+  opacity:.45;pointer-events:none;
+}
+#soil-prune-edit-btn.enabled{opacity:1;pointer-events:auto}
+#soil-prune-edit-btn:hover{background:rgba(0,0,0,.06);border-color:#999}
+#soil-prune-edit-btn:active{transform:scale(.93)}
+
 /* ── Paste fallback: interim textarea for when Clipboard API is denied ── */
 #soil-paste-fallback{display:none;flex-direction:column;align-items:stretch;gap:8px;padding:14px 16px;flex:1}
 #soil-paste-fallback.active{display:flex}
@@ -2507,7 +2574,7 @@ body.mode-mist  #soil-jump-sep{border-top-color:#e0e0e0;}
 
 /* ── Rich display pane (Paste / Import mode) ── */
 /* ── Rich content frame ── */
-#soil-rich-wrap{flex:1;min-height:0;display:none;flex-direction:column;padding:10px 12px 12px;box-sizing:border-box}
+#soil-rich-wrap{flex:1;min-height:0;display:none;flex-direction:column;padding:10px 12px 54px;box-sizing:border-box}
 #soil-rich-wrap.active{display:flex}
 #soil-rich-frame{
   flex:1;min-height:0;
@@ -2686,7 +2753,7 @@ body.mode-roots #soil-import-back-btn{border-color:rgba(0,0,0,.2);color:#6A4820}
 body.mode-mist  #soil-import-back-btn{border-color:#bbb;color:#555}
 #soil-write-done-btn{
   position:absolute;
-  bottom:18px;
+  bottom:62px;
   right:16px;
   z-index:20;
   background:linear-gradient(135deg,rgba(80,140,20,.82),rgba(60,110,15,.90));
@@ -3074,7 +3141,7 @@ body.mode-mist  #soil-imports-count{background:#eee;border-color:#ddd;color:#666
 body.mode-mist #soil-imports-close{border-color:#ddd;color:#888}
 
 #soil-imports-sheet{
-  position:absolute;inset:96px 0 0 0;
+  position:absolute;inset:0 0 46px 0;
   display:flex;flex-direction:column;
   background:var(--bg-grad);
   z-index:10;
@@ -3995,8 +4062,8 @@ body.mode-roots .fmtb-harvest-btn:hover{background:rgba(140,80,10,.14)!important
 
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:#120A04}::-webkit-scrollbar-thumb{background:#38200C;border-radius:2px}body.mode-mist::-webkit-scrollbar-track{background:#eee}body.mode-mist::-webkit-scrollbar-thumb{background:#bbb}
 /* ─── SOIL PAGE ─── */
-/* soil-ov is now a sibling page to #canvas, not a fixed overlay */
-#soil-ov{display:none;flex-direction:column;background:var(--bg-grad);overflow:hidden;height:calc(100vh - 96px);max-height:calc(100vh - 96px);padding-top:96px;touch-action:none;position:relative}
+/* soil-ov covers the full viewport below the fixed header */
+#soil-ov{display:none;flex-direction:column;background:var(--bg-grad);overflow-y:auto;overflow-x:hidden;position:fixed;top:96px;left:0;right:0;bottom:0;padding-top:0;touch-action:pan-y;z-index:150;}
 #soil-ov.open{display:flex}
 
 /* ── SOIL PANE (full-screen, no split) ── */
@@ -4511,6 +4578,10 @@ body.mode-mist #import-reminder-text strong{color:#4A1A00;}
         <span class="soil-mode-btn-icon">📄</span>
         <span class="soil-mode-btn-label">Import<span class="soil-mode-btn-desc">Load from a file</span></span>
       </button>
+      <button class="soil-mode-btn" data-soil-mode="prune">
+        <span class="soil-mode-btn-icon">✂️</span>
+        <span class="soil-mode-btn-label">Prune<span class="soil-mode-btn-desc">Browse and edit your tree</span></span>
+      </button>
       <hr id="soil-imports-sep" style="border:none;border-top:1px solid rgba(255,255,255,.07);margin:2px 0">
       <button id="soil-imports-btn">
         <span class="soil-mode-btn-icon">🗂</span>
@@ -4548,6 +4619,12 @@ body.mode-mist #import-reminder-text strong{color:#4A1A00;}
           <button id="soil-rich-edit-btn" title="Edit content">✏️ Edit</button>
         </div>
       </div>
+    </div>
+    <!-- Prune mode: tree in mist style inside soil content box -->
+    <div id="soil-prune-wrap"></div>
+    <div id="soil-prune-ftr">
+      <span id="soil-prune-ftr-hint">Tap a card to select it</span>
+      <button id="soil-prune-edit-btn" title="Edit selected card">✏️ Edit</button>
     </div>
     <!-- Hidden file input for Import -->
     <input type="file" id="soil-import-file" accept=".html,.htm,.txt,.md" style="display:none">
@@ -5521,6 +5598,7 @@ if(el){
   // Card is fully visible — don't scroll at all
 }
 requestAnimationFrame(markTruncatedNotes);
+if(_soilInputMode==='prune') _updatePruneEditBtn();
 }
 function selectCardNoScroll(id){
 clearGraftFresh();
@@ -5549,6 +5627,7 @@ _applyMistSelSubtree(null);
 _removeCardQuickActions();
 _refreshAllIgDests();
 requestAnimationFrame(markTruncatedNotes);
+if(_soilInputMode==='prune') _updatePruneEditBtn();
 }
 document.getElementById('canvas').addEventListener('click',e=>{
 if(e.target===document.getElementById('canvas')||e.target===document.getElementById('root-list')){
@@ -5613,7 +5692,7 @@ const dh=document.createElement('div');dh.className='dh';dh.innerHTML='<span></s
 let tg;
 if(node.kids.length){
 tg=document.createElement('button');tg.className='tg'+(node.open?'':' cl');tg.textContent='▾';
-tg.addEventListener('click',e=>{e.stopPropagation();node.open=!node.open;renderBlocks();});
+tg.addEventListener('click',e=>{e.stopPropagation();node.open=!node.open;if(typeof _onToggleRender==='function')_onToggleRender();else renderBlocks();});
 } else {
 tg=document.createElement('div');tg.className='tg-ph';
 }
@@ -6123,16 +6202,20 @@ function findParentNode(list,targetId,parent){
   }
   return undefined; // not found
 }
+function _activeRoots(){
+  if(typeof _soilInputMode!=='undefined'&&_soilInputMode==='prune'&&typeof _pruneTreeId!=='undefined'&&_pruneTreeId){
+    const pt=forest.find(t=>t.id===_pruneTreeId);
+    if(pt)return pt.roots;
+  }
+  return aTree().roots;
+}
 function getParentOf(id){
-  const roots=aTree().roots;
+  const roots=_activeRoots();
   const r=findParentNode(roots,id,null);
-  // r===null  → found, but root-level (no parent)
-  // r===undefined → not found at all (treat same as no parent)
   return (r===undefined)?null:r;
 }
-// Returns true if candidateId is a descendant of ancestorId
 function isDescendantOf(ancestorId,candidateId){
-  const roots=aTree().roots;
+  const roots=_activeRoots();
   const ancestor=find(roots,ancestorId);
   if(!ancestor)return false;
   return !!find(ancestor.kids||[],candidateId);
@@ -6146,7 +6229,7 @@ function _stopLongPress(){
 
 function _startLongPressRipple(){
   longFired=true;
-  const isMist=document.body.classList.contains('mode-mist');
+  const isMist=document.body.classList.contains('mode-mist')||_soilInputMode==='prune';
   let rippleId;
   if(isMist){
     // If the pressed card is a descendant of the selected card, start the
@@ -6195,11 +6278,10 @@ function handleTap(e){
   // In multi-select mode: toggle card (ms-mode disabled in mist mode)
   if(msMode){msTapCard(node.id);return;}
 
-  const isMist=document.body.classList.contains('mode-mist');
+  const isMist=document.body.classList.contains('mode-mist')||_soilInputMode==='prune';
 
   // Double-tap detection
   const now=Date.now();
-  const elapsed=now-lastTapTime;
   lastTapTime=now;
 
   if(tapN===0) selectedIdAtFirstTap=selectedId; // snapshot before first tap changes selection
@@ -6219,22 +6301,21 @@ function handleTap(e){
       tapN=0;clearTimeout(tapT);
       closeCtx();
       // Determine which node to toggle:
-      // 1. This card is selected → toggle it.
-      // 2. This card is unselected and a selected ancestor exists → toggle that ancestor.
-      // 3. This card is unselected with no selected ancestor → toggle it.
+      // After tap-1 has already updated selectedId, `alreadySelected` reflects
+      // the correct post-tap-1 state: the tapped card IS now selected.
+      // If the tapped card was NOT already selected before tap-1 but a selected
+      // ancestor exists (captured in selectedIdAtFirstTap), toggle that ancestor.
       let toggleTarget=node;
-      // Use the selection state from the FIRST tap, before tap-1 may have
-      // changed selectedId. This way double-tapping an unselected descendant
-      // correctly identifies the ancestor that was selected at gesture start.
-      const selIdSnap=selectedIdAtFirstTap;
+      const selIdSnap=selectedIdAtFirstTap; // snapshot from BEFORE tap-1
       if(!wasSelectedAtFirstTap&&selIdSnap){
-        const roots=aTree().roots;
+        const roots=_activeRoots();
         const sel=find(roots,selIdSnap);
+        // Toggle the ancestor only if the tapped card is a descendant of it
         if(sel&&isDescendantOf(selIdSnap,node.id)) toggleTarget=sel;
       }
       if(toggleTarget.kids&&toggleTarget.kids.length){
         toggleTarget.open=!toggleTarget.open;
-        renderBlocks();
+        if(typeof _onToggleRender==='function')_onToggleRender();else renderBlocks();
         markUnsaved();
       }
       // If we toggled an ancestor (not the tapped card itself), select it.
@@ -6250,8 +6331,8 @@ function handleTap(e){
   }
 
   // ── NON-MIST MODE GESTURES (original behaviour) ──
-  // Double-tap: open Sunlight (either tapN>=2 OR elapsed<420ms on a selected card)
-  if(tapN>=2||(alreadySelected&&elapsed<420)){
+  // Double-tap: open Sunlight
+  if(tapN>=2){
     tapN=0;clearTimeout(tapT);
     closeCtx();clearSelection();
     openShine(node);
@@ -6282,7 +6363,7 @@ hasMoved=false;
 _touchHandled=false;
 longFired=false;
 _stopLongPress();
-const isMist=document.body.classList.contains('mode-mist');
+const isMist=document.body.classList.contains('mode-mist')||_soilInputMode==='prune';
 // In mist mode: arm the ripple only when this card is already selected.
 // Long-pressing an unselected card leaves mist-text-select intact so
 // Android's native text-selection fires freely. Double-tap toggle is
@@ -6315,8 +6396,8 @@ hasMoved=true;_stopLongPress();touchDown=null;
 card.addEventListener('touchend',e=>{
 const wasLong=longFired;
 _stopLongPress();
-// Restore text-selectability in mist mode after any gesture resolves.
-if(document.body.classList.contains('mode-mist')){
+// Restore text-selectability in mist mode (or prune mode) after any gesture resolves.
+if(document.body.classList.contains('mode-mist')||(typeof _soilInputMode!=='undefined'&&_soilInputMode==='prune')){
   document.body.classList.add('mist-text-select');
 }
 if(!touchDown)return;
@@ -6330,13 +6411,15 @@ if(wasLong)return; // long-press gesture consumed — don't re-select via tap
 // card also deselects, but let the browser act first.
 const hasBrowserSelection=document.body.classList.contains('mode-mist')&&window.getSelection&&window.getSelection().toString().length>0;
 if(!hasBrowserSelection) e.preventDefault();
+// Set _touchHandled here (after all early returns) so the subsequent
+// pointerup is suppressed only for THIS touch cycle, never for a future one.
 _touchHandled=true;
 handleTap(e);
 },{passive:false});
 card.addEventListener('touchcancel',()=>{
 _stopLongPress();
 // Restore text-selectability on cancel too.
-if(document.body.classList.contains('mode-mist')){
+if(document.body.classList.contains('mode-mist')||(typeof _soilInputMode!=='undefined'&&_soilInputMode==='prune')){
   document.body.classList.add('mist-text-select');
 }
 touchDown=null;hasMoved=false;_touchHandled=false;
@@ -8034,6 +8117,13 @@ document.getElementById('soil-rich-wrap').classList.remove('active');
 document.getElementById('soil-import-back-btn').style.display='none';
 document.getElementById('soil-harvest-all-btn').style.display='none';
 document.getElementById('soil-dissect-all-btn').style.display='none';
+// Clear any leftover prune state so the tree never shows behind the picker
+const _pwOpen=document.getElementById('soil-prune-wrap');
+if(_pwOpen){_pwOpen.classList.remove('active');_pwOpen.innerHTML='';}
+const _pddOpen=document.getElementById('soil-prune-pick-popup');
+if(_pddOpen){_pddOpen.remove();}
+if(typeof _onToggleRender!=='undefined')_onToggleRender=null;
+if(typeof _pruneTreeId!=='undefined')_pruneTreeId=null;
 _soilInputMode='write';
 // Update jump-back button visibility
 _updateJumpBtn();
@@ -8082,6 +8172,11 @@ document.getElementById('soil-import-back-btn').style.display = 'none';
 document.getElementById('soil-harvest-all-btn').style.display = 'none';
 document.getElementById('soil-dissect-all-btn').style.display = 'none';
 _removeSoilWriteDoneBtn();
+const _pwClose = document.getElementById('soil-prune-wrap');
+if(_pwClose){ _pwClose.classList.remove('active'); _pwClose.innerHTML = ''; }
+const _pddClose = document.getElementById('soil-prune-pick-popup');
+if(_pddClose){ _pddClose.remove(); }
+_onToggleRender = null;
 const _ap = document.getElementById('soil-action-popup');
 if(_ap) _ap.remove();
 // Restore header to show tree name
@@ -8959,8 +9054,116 @@ function _removeSoilWriteDoneBtn(){
 }
 
 document.querySelectorAll('.soil-mode-btn').forEach(btn => {
-  btn.addEventListener('click', ()=> _setSoilMode(btn.dataset.soilMode));
+  btn.addEventListener('click', ()=>{
+    if(btn.dataset.soilMode === 'prune') _openSoilPrune();
+    else _setSoilMode(btn.dataset.soilMode);
+  });
 });
+
+// ── _onToggleRender: overridden by prune mode so collapse toggles re-render prune, not main canvas ──
+let _onToggleRender = null;
+// Which tree is shown in prune mode
+let _pruneTreeId = null;
+
+function _renderPruneWrap(){
+  const wrap = document.getElementById('soil-prune-wrap');
+  if(!wrap || !wrap.classList.contains('active')) return;
+  wrap.innerHTML = '';
+  const pruneTree = forest.find(t => t.id === _pruneTreeId) || forest[0];
+  const roots = pruneTree ? pruneTree.roots : [];
+  if(!roots.length){
+    const empty = document.createElement('div');
+    empty.style.cssText = 'text-align:center;padding:40px 16px;color:#888;font-family:var(--f-display);font-size:.9rem;font-style:italic;';
+    empty.textContent = 'No cards yet.';
+    wrap.appendChild(empty);
+    return;
+  }
+  roots.forEach(n => wrap.appendChild(mkEl(n, 0, roots, true)));
+  if(selectedId){
+    const c = wrap.querySelector(`.bc[data-id="${selectedId}"]`);
+    if(c) c.classList.add('selected');
+  }
+}
+
+function _openSoilPrune(){
+  // If only one tree, skip picker and open directly
+  if(forest.length <= 1){
+    _pruneTreeId = forest[0] ? forest[0].id : activeId;
+    _doOpenSoilPrune();
+    return;
+  }
+
+  // Show bottom-sheet tree picker (same pattern as soil-action-popup)
+  const old = document.getElementById('soil-prune-pick-popup');
+  if(old) old.remove();
+
+  const popup = document.createElement('div');
+  popup.id = 'soil-prune-pick-popup';
+  popup.style.cssText = 'position:fixed;inset:0;z-index:970;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.65);animation:ctxIn .16s ease-out;padding-bottom:env(safe-area-inset-bottom,0px);';
+
+  const box = document.createElement('div');
+  box.id = 'soil-prune-pick-box';
+  // Reuse soil-action-popup-box styling via inline style matching that rule
+  box.style.cssText = 'width:100%;max-width:680px;border-bottom:none;border-radius:18px 18px 0 0;padding:18px 18px calc(22px + 44px);box-shadow:0 -12px 40px rgba(0,0,0,.65);display:flex;flex-direction:column;gap:10px;';
+  // Apply theme colours
+  const isMistMode = document.body.classList.contains('mode-mist');
+  const isRootsMode = document.body.classList.contains('mode-roots');
+  if(isMistMode){
+    box.style.background = '#fff';
+    box.style.border = '1.5px solid #ddd';
+  } else if(isRootsMode){
+    box.style.background = 'linear-gradient(175deg,#F0E4C8 0%,#DDD0A8 100%)';
+    box.style.border = '1.5px solid rgba(140,90,20,.45)';
+  } else {
+    box.style.background = 'linear-gradient(175deg,#3A1E08 0%,#221208 100%)';
+    box.style.border = '1.5px solid rgba(160,90,30,.5)';
+  }
+
+  const label = document.createElement('p');
+  label.style.cssText = 'font-family:var(--f-display);font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.7;text-align:center;margin-bottom:2px;';
+  label.style.color = isMistMode ? '#999' : isRootsMode ? '#6A4020' : '#806050';
+  label.textContent = 'Which tree would you like to prune?';
+  box.appendChild(label);
+
+  function dismiss(){ popup.remove(); }
+
+  forest.forEach(tree => {
+    const btn = document.createElement('button');
+    btn.className = 'soil-action-btn';
+    btn.style.cssText = 'background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:inherit;';
+    if(isMistMode) btn.style.cssText = 'background:rgba(0,0,0,.04);border:1px solid #ddd;color:#222;';
+    else if(isRootsMode) btn.style.cssText = 'background:rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.15);color:#3A1A04;';
+    btn.textContent = tree.name;
+    btn.addEventListener('click', () => {
+      dismiss();
+      _pruneTreeId = tree.id;
+      _doOpenSoilPrune();
+    });
+    box.appendChild(btn);
+  });
+
+  popup.appendChild(box);
+  // Tap backdrop to cancel
+  popup.addEventListener('click', e => { if(e.target === popup) dismiss(); });
+  document.getElementById('soil-bottom').appendChild(popup);
+}
+
+function _doOpenSoilPrune(){
+  _soilInputMode = 'prune';
+  document.getElementById('soil-mode-picker').classList.add('chosen');
+  document.getElementById('soil-textarea-wrap').style.display = 'none';
+  document.getElementById('soil-rich-wrap').classList.remove('active');
+  document.getElementById('soil-paste-fallback').classList.remove('active');
+  document.getElementById('soil-import-back-btn').style.display = 'inline-block';
+  document.getElementById('soil-harvest-all-btn').style.display = 'inline-block';
+  document.getElementById('soil-dissect-all-btn').style.display = 'inline-block';
+  _removeSoilWriteDoneBtn();
+  document.getElementById('soil-prune-wrap').classList.add('active');
+  document.getElementById('soil-prune-ftr').classList.add('active');
+  _onToggleRender = _renderPruneWrap;
+  _renderPruneWrap();
+  _updatePruneEditBtn();
+}
 
 // ── Jump where you left off ──
 document.getElementById('soil-jump-btn').addEventListener('click', ()=>{
@@ -8971,7 +9174,6 @@ document.getElementById('soil-jump-btn').addEventListener('click', ()=>{
 // ── Import back button — returns to path selection with confirmation ──
 document.getElementById('soil-import-back-btn').addEventListener('click', ()=>{
   _saveSoilSession();
-  _doReset();
 
   function _doReset(){
     _soilInputMode = 'write';
@@ -8983,11 +9185,26 @@ document.getElementById('soil-import-back-btn').addEventListener('click', ()=>{
     document.getElementById('soil-paste-fallback').classList.remove('active');
     document.getElementById('soil-rich-wrap').classList.remove('active');
     document.getElementById('soil-rich-display').innerHTML = '';
-    if(ta) ta.value = '';
+    const _backBtnTa = document.getElementById('soil-textarea');
+    if(_backBtnTa) _backBtnTa.value = '';
     document.getElementById('soil-import-back-btn').style.display = 'none';
     document.getElementById('soil-harvest-all-btn').style.display = 'none';
     document.getElementById('soil-dissect-all-btn').style.display = 'none';
     _removeSoilWriteDoneBtn();
+    const _pw = document.getElementById('soil-prune-wrap');
+    if(_pw){ _pw.classList.remove('active'); _pw.innerHTML = ''; }
+    document.getElementById('soil-prune-ftr').classList.remove('active');
+    const _pdd = document.getElementById('soil-prune-pick-popup');
+    if(_pdd){ _pdd.remove(); }
+    _onToggleRender = null;
+    _pruneTreeId = null;
+    // Clear any card selection that was made while browsing prune — it must not
+    // bleed back into the main canvas or the next prune session.
+    selectedId = null;
+    document.querySelectorAll('.bc.selected').forEach(c => c.classList.remove('selected'));
+    document.querySelectorAll('.bc.mist-sel-subtree').forEach(c => c.classList.remove('mist-sel-subtree'));
+    // Clear the tab snapshot so switching away and back doesn't re-open prune.
+    if(typeof window._tabClearSoilSnapshot === 'function') window._tabClearSoilSnapshot();
     // Dismiss action popup if open
     const ap = document.getElementById('soil-action-popup');
     if(ap) ap.remove();
@@ -8996,8 +9213,90 @@ document.getElementById('soil-import-back-btn').addEventListener('click', ()=>{
   _doReset();
 });
 
+// ── Prune footer Edit button: enabled when a card is selected; opens it in Sunlight (same edit overlay used elsewhere) ──
+function _updatePruneEditBtn(){
+  const btn = document.getElementById('soil-prune-edit-btn');
+  const hint = document.getElementById('soil-prune-ftr-hint');
+  if(!btn) return;
+  const pruneTree = forest.find(t => t.id === _pruneTreeId) || forest[0];
+  const roots = pruneTree ? pruneTree.roots : [];
+  const node = selectedId ? find(roots, selectedId) : null;
+  if(node){
+    btn.classList.add('enabled');
+    if(hint) hint.textContent = '';
+  } else {
+    btn.classList.remove('enabled');
+    if(hint) hint.textContent = 'Tap a card to select it';
+  }
+}
+document.getElementById('soil-prune-edit-btn').addEventListener('click', ()=>{
+  const pruneTree = forest.find(t => t.id === _pruneTreeId) || forest[0];
+  const roots = pruneTree ? pruneTree.roots : [];
+  const node = selectedId ? find(roots, selectedId) : null;
+  if(!node) return;
+  openShine(node);
+});
+
+// ── Serialize the pruned tree's cards to HTML (headings + notes) so the same
+//    Harvest/Dissect algorithms used elsewhere can operate on it ──
+function _pruneTreeToHtml(){
+  const pruneTree = forest.find(t => t.id === _pruneTreeId) || forest[0];
+  const roots = pruneTree ? pruneTree.roots : [];
+  // Split a note's HTML into separate block-level <p> elements, one per
+  // line (splitting on <br> and block boundaries like <div>/<p>), so that
+  // each line is its own block. This lets parseRichTextToCards detect
+  // bold-only lines as new card titles, and preserves line breaks.
+  function noteToBlocks(noteHtml){
+    const tmp = document.createElement('div');
+    tmp.innerHTML = noteHtml;
+    // Normalize: turn block-level children (div/p) into <br>-separated content first
+    tmp.querySelectorAll('div,p').forEach(el => {
+      el.insertAdjacentHTML('afterend', '<br>');
+      while(el.firstChild) el.parentNode.insertBefore(el.firstChild, el);
+      el.remove();
+    });
+    // Now split tmp's children on <br> into lines, preserving inline tags
+    const lines = [];
+    let cur = document.createElement('p');
+    function flush(){
+      // Only keep non-empty lines
+      if(cur.innerHTML.trim()) lines.push(cur);
+      cur = document.createElement('p');
+    }
+    [...tmp.childNodes].forEach(node => {
+      if(node.nodeType === 1 && node.tagName === 'BR'){
+        flush();
+      } else {
+        cur.appendChild(node.cloneNode(true));
+      }
+    });
+    flush();
+    return lines.map(p => p.outerHTML).join('');
+  }
+  function nodeHtml(node, depth){
+    const hLevel = Math.min(depth + 1, 6);
+    const title = (node.title || '').trim();
+    let out = '';
+    if(title) out += `<h${hLevel}>${title}</h${hLevel}>`;
+    if(node.note && node.note.trim()) out += noteToBlocks(node.note);
+    if(node.kids && node.kids.length){
+      node.kids.forEach(k => { out += nodeHtml(k, depth + 1); });
+    }
+    return out;
+  }
+  return roots.map(n => nodeHtml(n, 0)).join('');
+}
+
 // ── Harvest all: harvest entire rich content to branches ──
 document.getElementById('soil-harvest-all-btn').addEventListener('click', ()=>{
+  if(_soilInputMode === 'prune'){
+    const html = _pruneTreeToHtml();
+    if(!html) return;
+    const parsed = parseRichTextToCards(html);
+    if(!parsed.length) return;
+    openCardPreviewPopup(parsed, 'Harvest to branches');
+    return;
+  }
   const display = document.getElementById('soil-rich-display');
   if(!display || !display.innerText.trim()) return;
   const html = display.innerHTML;
@@ -9010,6 +9309,14 @@ document.getElementById('soil-harvest-all-btn').addEventListener('click', ()=>{
 
 // ── Dissect all: dissect entire rich content to cards ──
 document.getElementById('soil-dissect-all-btn').addEventListener('click', ()=>{
+  if(_soilInputMode === 'prune'){
+    const html = _pruneTreeToHtml();
+    if(!html) return;
+    const cards = dissectRichTextToCards(html);
+    if(!cards.length) return;
+    openCardPreviewPopup(cards, 'Dissect to cards');
+    return;
+  }
   const display = document.getElementById('soil-rich-display');
   if(!display || !display.innerText.trim()) return;
   const html = display.innerHTML;
@@ -15698,6 +16005,7 @@ render();
       const richDisplay = document.getElementById('soil-rich-display');
       tabs[activeTab].soilSnapshot = {
         mode: _soilInputMode,
+        pruneTreeId: (typeof _pruneTreeId !== 'undefined' ? _pruneTreeId : null),
         text: (ta && ta.value) || '',
         html: (richDisplay && richDisplay.innerHTML) || '',
         pickerChosen: document.getElementById('soil-mode-picker').classList.contains('chosen'),
@@ -16144,11 +16452,24 @@ render();
   function _restoreTabSoilSnapshot(key){
     const snap = tabs[key].soilSnapshot;
     if(!snap || !snap.pickerChosen) return; // nothing to restore, leave picker visible
+    // Always wipe prune-wrap first — openSoil() clears it, but a re-entrant
+    // _doOpenSoilPrune() call on a prior tab-switch may have re-populated it.
+    // If we're restoring a non-prune mode, any leftover prune content must be gone.
+    if(snap.mode !== 'prune'){
+      const pw = document.getElementById('soil-prune-wrap');
+      if(pw){ pw.classList.remove('active'); pw.innerHTML = ''; }
+      if(typeof _onToggleRender !== 'undefined') _onToggleRender = null;
+    }
     // Re-apply the UI state that openSoil() just wiped
     _soilInputMode = snap.mode;
     document.getElementById('soil-mode-picker').classList.add('chosen');
     document.getElementById('soil-import-back-btn').style.display = snap.backBtnVisible ? 'inline-block' : 'none';
-    if(snap.mode === 'write'){
+    if(snap.mode === 'prune'){
+      // Prune mode: restore which tree was being browsed, then open directly (no picker)
+      if(snap.pruneTreeId && typeof _pruneTreeId !== 'undefined') _pruneTreeId = snap.pruneTreeId;
+      else if(typeof _pruneTreeId !== 'undefined') _pruneTreeId = activeId;
+      if(typeof _doOpenSoilPrune === 'function') _doOpenSoilPrune();
+    } else if(snap.mode === 'write'){
       const ta = document.getElementById('soil-textarea');
       if(ta) ta.value = snap.text;
       document.getElementById('soil-textarea-wrap').style.display = snap.textareaVisible ? '' : 'none';
@@ -16240,6 +16561,13 @@ render();
   // tree from the tab dropdown (handled in buildTabDd).
   window._tabSoilClosed = function(){
     // intentionally empty — soilOnly is reset only via the tab dropdown tree-picker
+  };
+
+  // Called by _doReset() (the "New import" back button) so that the snapshot
+  // stored for the active tab no longer triggers prune-mode restore on the next
+  // tab switch back to this tab.
+  window._tabClearSoilSnapshot = function(){
+    tabs[activeTab].soilSnapshot = null;
   };
 
 })(); // end dual-tab IIFE
