@@ -11335,9 +11335,10 @@
           (s &&
           _isMarkdown(s) &&
           (!n ||
-            !/<h[1-6]|<ul|<ol|<li|<strong|<b>|<em|<blockquote|<pre|<code/i.test(
+            (!/<h[1-6]|<ul|<ol|<li|<strong|<b>|<em|<blockquote|<pre|<code/i.test(
               n,
-            ))
+            ) &&
+              !/<table/i.test(n)))
             ? ((_soilOriginWasMd = !0), (e.innerHTML = _markdownToHtml(s)))
             : n
               ? ((e.innerHTML = _sanitiseRichHtml(n)), (_soilOriginWasMd = !1))
@@ -11434,9 +11435,10 @@
           o &&
           _isMarkdown(o) &&
           (!e ||
-            !/<h[1-6]|<ul|<ol|<li|<strong|<b>|<em|<blockquote|<pre|<code/i.test(
+            (!/<h[1-6]|<ul|<ol|<li|<strong|<b>|<em|<blockquote|<pre|<code/i.test(
               e,
-            ))
+            ) &&
+              !/<table/i.test(e)))
         )
           ((_soilOriginWasMd = !0), (n.innerHTML = _markdownToHtml(o)));
         else if (e)
@@ -11561,7 +11563,7 @@
             const t = e.innerHTML,
               n = e.innerText.trim(),
               o =
-                t && /<h[1-6]|<ol|<ul|<b>|<strong/i.test(t)
+                t && /<h[1-6]|<ol|<ul|<b>|<strong|<table/i.test(t)
                   ? parseRichTextToCards(t)
                   : parseMarkdownToCards(n),
               s =
@@ -11668,6 +11670,37 @@
           if (a) {
             const e = a[1].length;
             (o.push(`<h${e}>${i(t(a[2].trim()))}</h${e}>`), s++);
+            continue;
+          }
+          const tblRow = /^\s*\|.*\|\s*$/;
+          const tblSep = /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)+\|?\s*$/;
+          if (tblRow.test(e) && n[s + 1] && tblSep.test(n[s + 1])) {
+            const parseRow = (line) =>
+              line
+                .trim()
+                .replace(/^\|/, "")
+                .replace(/\|$/, "")
+                .split("|")
+                .map((c) => c.trim());
+            const headers = parseRow(e);
+            s += 2;
+            const rows = [];
+            while (s < n.length && tblRow.test(n[s])) {
+              rows.push(parseRow(n[s]));
+              s++;
+            }
+            let html =
+              "<table><thead><tr>" +
+              headers.map((h) => "<th>" + i(t(h)) + "</th>").join("") +
+              "</tr></thead><tbody>";
+            rows.forEach((r) => {
+              html +=
+                "<tr>" +
+                r.map((c) => "<td>" + i(t(c)) + "</td>").join("") +
+                "</tr>";
+            });
+            html += "</tbody></table>";
+            o.push(html);
             continue;
           }
           if (/^>\s*/.test(e))
@@ -12430,7 +12463,7 @@
           if (!t || !t.text) return;
           const n = document
             .getElementById("soil-rich-display")
-            .querySelector("h1,h2,h3,h4,h5,h6,ol,ul,b,strong")
+            .querySelector("h1,h2,h3,h4,h5,h6,ol,ul,b,strong,table")
             ? parseRichTextToCards(t.html)
             : parseMarkdownToCards(t.text);
           e(
@@ -15068,6 +15101,7 @@
       }
       function parseRichTextToCards(e) {
         const t = document.createElement("div");
+        let minFontSize = null;
         function n(e) {
           let t = 0,
             n = 0;
