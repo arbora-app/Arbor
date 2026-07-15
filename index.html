@@ -3404,6 +3404,16 @@
       #soil-rich-display b,#soil-rich-display strong{font-weight:700}
       #soil-rich-display i,#soil-rich-display em{font-style:italic}
       #soil-rich-display a{color:inherit;text-decoration:underline;text-decoration-color:rgba(255,255,255,.25)}
+      #soil-rich-display:not([contenteditable="true"]) .soil-table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;margin:.6em 0;border-radius:6px;user-select:none;-webkit-user-select:none}
+      #soil-rich-display[contenteditable="true"] .soil-table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;margin:.6em 0;border-radius:6px}
+      #soil-rich-display .soil-table-scroll table{border-collapse:collapse;width:auto;min-width:100%;margin:0;font-size:.88em}
+      #soil-rich-display th,#soil-rich-display td{border:1px solid rgba(255,255,255,.2);padding:5px 9px;text-align:left;vertical-align:top}
+      #soil-rich-display .soil-table-scroll th,#soil-rich-display .soil-table-scroll td{white-space:nowrap}
+      body.mode-roots #soil-rich-display th,body.mode-roots #soil-rich-display td{border-color:rgba(0,0,0,.18)}
+      body.mode-mist  #soil-rich-display th,body.mode-mist  #soil-rich-display td{border-color:rgba(0,0,0,.15)}
+      #soil-rich-display th{font-weight:700;background:rgba(255,255,255,.06)}
+      body.mode-roots #soil-rich-display th{background:rgba(0,0,0,.05)}
+      body.mode-mist  #soil-rich-display th{background:rgba(0,0,0,.04)}
       body.mode-roots #soil-rich-display a{text-decoration-color:rgba(0,0,0,.2)}
       body.mode-mist  #soil-rich-display a{text-decoration-color:#ccc}
       /* empty state */
@@ -7683,6 +7693,18 @@
         const sel = window.getSelection();
         if (!sel || !sel.rangeCount || sel.isCollapsed) return;
         const range = sel.getRangeAt(0);
+        /* Range.cloneContents() drops the wrapping <ul>/<ol> when a
+           selection spans whole list items (the list becomes the range's
+           commonAncestorContainer, so its <li> children are hoisted to the
+           top level of the clone). Remember whether the selection sits
+           inside an <ol> so we can rebuild the right wrapper below. */
+        const _commonEl =
+          range.commonAncestorContainer.nodeType === 1
+            ? range.commonAncestorContainer
+            : range.commonAncestorContainer.parentElement;
+        const _listAncestor = _commonEl && _commonEl.closest
+          ? _commonEl.closest("ul,ol")
+          : null;
         const tmp = document.createElement("div");
         tmp.appendChild(range.cloneContents());
         function toText(node) {
@@ -7693,9 +7715,14 @@
             } else if (child.nodeType === 1) {
               if (child.nodeName === "BR") {
                 out += "\n";
-              } else if (child.nodeName === "P" || child.nodeName === "DIV") {
+              } else if (
+                child.nodeName === "P" ||
+                child.nodeName === "DIV" ||
+                child.nodeName === "LI"
+              ) {
                 if (out && out[out.length - 1] !== "\n") out += "\n";
-                out += toText(child);
+                out +=
+                  (child.nodeName === "LI" ? "• " : "") + toText(child);
                 if (out[out.length - 1] !== "\n") out += "\n";
               } else {
                 out += toText(child);
@@ -7723,6 +7750,20 @@
               return isEmpty ? "" : b.innerHTML;
             })
             .join("<br>");
+        } else if (
+          blocks.length &&
+          blocks.every(function (b) {
+            return b.nodeName === "LI";
+          })
+        ) {
+          /* Bare <li>s with no <ul>/<ol> wrapper — rebuild it so downstream
+             list detection (paste sanitiser, MD conversion) still sees a
+             real list instead of orphaned items. */
+          const tag = _listAncestor && _listAncestor.nodeName === "OL" ? "ol" : "ul";
+          html =
+            "<" + tag + ">" +
+            blocks.map(function (b) { return b.outerHTML; }).join("") +
+            "</" + tag + ">";
         } else {
           html = tmp.innerHTML;
         }
@@ -12794,6 +12835,40 @@
               ),
                 s++);
             o.push("</ol>");
+          } else if (
+            e.includes("|") &&
+            s + 1 < n.length &&
+            /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(
+              n[s + 1],
+            )
+          ) {
+            const splitRow = (r) =>
+              r
+                .trim()
+                .replace(/^\|/, "")
+                .replace(/\|$/, "")
+                .split(/(?<!\\)\|/)
+                .map((c) => c.trim().replace(/\\\|/g, "|"));
+            const headCells = splitRow(e);
+            o.push(
+              '<div class="soil-table-scroll"><table><thead><tr>' +
+                headCells.map((c) => "<th>" + i(t(c)) + "</th>").join("") +
+                "</tr></thead><tbody>",
+            );
+            s += 2;
+            for (
+              ;
+              s < n.length && n[s].includes("|") && "" !== n[s].trim();
+              s++
+            ) {
+              const cells = splitRow(n[s]);
+              o.push(
+                "<tr>" +
+                  cells.map((c) => "<td>" + i(t(c)) + "</td>").join("") +
+                  "</tr>",
+              );
+            }
+            o.push("</tbody></table></div>");
           } else
             "" !== e.trim()
               ? (o.push("<p>" + i(t(e)) + "</p>"), s++)
@@ -12842,6 +12917,23 @@
       function _sanitiseRichHtml(e) {
         const t = document.createElement("div");
         t.innerHTML = e;
+        /* The note-copy clipboard fix (_normalizeNoteClipboard) always
+           wraps its payload in a single outer <div>...</div> as a plain
+           container. Left in place, that div becomes an opaque "block" to
+           downstream block-level parsing (e.g. Harvest all), hiding any
+           nested <ul>/<ol>/<h#> inside it instead of letting them be
+           recognised as their own top-level blocks. Unwrap bare, attribute-
+           less single-div wrappers so behavior matches content that never
+           went through that wrapping (e.g. the markdown round-trip). */
+        while (
+          t.children.length === 1 &&
+          "DIV" === t.children[0].tagName &&
+          !t.children[0].attributes.length
+        ) {
+          const inner = t.children[0];
+          while (inner.firstChild) t.insertBefore(inner.firstChild, inner);
+          t.removeChild(inner);
+        }
         const n = null !== t.querySelector("table");
         (n && setTimeout(_showTableNotice, 120),
           t
@@ -12862,6 +12954,18 @@
               s.appendChild(t),
               e.remove());
           } else s = null;
+        });
+        /* Orphan <li> elements with no <ul>/<ol> parent (e.g. from a
+           clipboard fragment whose selection spanned a whole list, which
+           drops the wrapper) — wrap consecutive runs of them in a <ul> so
+           they're recognised as a real list downstream. */
+        let _liRun = null;
+        [...t.children].forEach((e) => {
+          if ("LI" !== e.tagName) return void (_liRun = null);
+          _liRun ||
+            ((_liRun = document.createElement("ul")),
+            e.parentNode.insertBefore(_liRun, e));
+          _liRun.appendChild(e);
         });
         const i =
           /^(font-weight|font-style|font-size|text-decoration|text-align|margin-left|padding-left|line-height|list-style-type)$/;
@@ -12890,6 +12994,17 @@
             [...e.attributes].forEach((n) => {
               t.includes(n.name) || e.removeAttribute(n.name);
             });
+          }),
+          t.querySelectorAll("table").forEach((tbl) => {
+            if (
+              tbl.parentElement &&
+              tbl.parentElement.classList.contains("soil-table-scroll")
+            )
+              return;
+            const wrap = document.createElement("div");
+            (wrap.className = "soil-table-scroll",
+              tbl.parentNode.insertBefore(wrap, tbl),
+              wrap.appendChild(tbl));
           }),
           t.innerHTML
         );
@@ -12921,6 +13036,32 @@
                   "```\n" + (e ? e.textContent : t.textContent) + "\n```\n"
                 );
               }
+              if ("table" === n) {
+                const rows = [...t.querySelectorAll("tr")];
+                if (!rows.length) return "";
+                const cellText = (cell) =>
+                  [...cell.childNodes]
+                    .map(e)
+                    .join("")
+                    .replace(/\n+/g, " ")
+                    .replace(/\|/g, "\\|")
+                    .trim();
+                const rowCells = rows.map((tr) =>
+                  [...tr.children].map(cellText),
+                );
+                const colCount = Math.max(...rowCells.map((r) => r.length));
+                const pad = (r) => {
+                  while (r.length < colCount) r.push("");
+                  return r;
+                };
+                const [headRow, ...bodyRows] = rowCells.map(pad);
+                let md = "| " + headRow.join(" | ") + " |\n";
+                md += "| " + headRow.map(() => "---").join(" | ") + " |\n";
+                bodyRows.forEach((r) => {
+                  md += "| " + r.join(" | ") + " |\n";
+                });
+                return md + "\n";
+              }
               return "blockquote" === n
                 ? o()
                     .split("\n")
@@ -12948,7 +13089,7 @@
                         )
                         .join("\n") + "\n"
                     : "li" === n
-                      ? o()
+                      ? "- " + o() + "\n"
                       : "div" === n || "section" === n || "article" === n
                         ? o() + "\n"
                         : o();
@@ -16494,6 +16635,32 @@
               .trim(),
           };
         }
+        function startsBold(el) {
+          let res = false,
+            done = false;
+          (function walk(node, bold) {
+            if (done) return;
+            if (3 === node.nodeType) {
+              if (node.textContent.replace(/\u00a0/g, " ").trim()) {
+                ((res = bold), (done = !0));
+              }
+              return;
+            }
+            if (1 !== node.nodeType) return;
+            const tag = node.tagName.toLowerCase(),
+              fw = node.style && node.style.fontWeight,
+              b =
+                bold ||
+                "b" === tag ||
+                "strong" === tag ||
+                "bold" === fw ||
+                parseInt(fw) >= 700;
+            for (const c of node.childNodes) {
+              if ((walk(c, b), done)) return;
+            }
+          })(el, !1);
+          return res;
+        }
         function renderUlToHtml(e) {
           const items = Array.from(e.querySelectorAll(":scope > li")).map(
             (li) => "<li>" + p(li) + "</li>",
@@ -16547,6 +16714,32 @@
             continue;
           }
           if ("ul" === t) {
+            const _lis = Array.from(e.querySelectorAll(":scope > li")),
+              _first = _lis.find((li) => o(li));
+            if (_first && startsBold(_first)) {
+              const _base = b;
+              for (const li of _lis) {
+                const clone = li.cloneNode(!0);
+                clone.querySelectorAll("ul,ol").forEach((x) => x.remove());
+                const s = o(clone);
+                if (!s) continue;
+                (f(h), (h = null));
+                const gg = g(clone);
+                ((h = gg
+                  ? { level: _base + 1, title: gg.title, note: gg.noteHtml }
+                  : { level: _base + 1, title: s, note: "" }),
+                  (v = _base + 1));
+                for (const sub of li.querySelectorAll(":scope > ul, :scope > ol"))
+                  for (const subli of sub.querySelectorAll(":scope > li")) {
+                    const st = o(subli);
+                    st &&
+                      (f(h),
+                      (h = null),
+                      u.push({ level: _base + 2, title: st, note: "" }));
+                  }
+              }
+              continue;
+            }
             const n = renderUlToHtml(e);
             if (!n) continue;
             h
