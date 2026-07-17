@@ -27347,7 +27347,9 @@
         }
         let h = null,
           b = 1,
-          v = 1;
+          v = 1,
+          lastTitled = null;
+        const partCounts = Object.create(null);
         // Recursively walks a <ul>/<ol>, turning each direct <li> into a card
         // at baseLevel+1, and any <ul>/<ol> nested directly inside that <li>
         // into cards one level deeper still — recursing indefinitely rather
@@ -27416,18 +27418,21 @@
               (h = null),
               (b = i),
               (v = i),
-              (h = { level: i, title: n, note: "" }));
+              (h = { level: i, title: n, note: "" }),
+              (lastTitled = { title: n, level: i }));
           else if (s.test(n)) {
             (f(h), (h = null));
             const { title: t, note: n } = m(e);
             h = { level: v + 1, title: t, note: n };
+            if (t) lastTitled = { title: t, level: v + 1 };
           } else {
             const t = g(e);
             if (t)
               (f(h),
                 (h = null),
                 (h = { level: b, title: t.title, note: t.noteHtml }),
-                (v = b));
+                (v = b),
+                (lastTitled = { title: t.title, level: b }));
             else {
               const t = p(e);
               if (h) {
@@ -27436,6 +27441,23 @@
                     "<p>" + t + "</p>"
                   : t;
                 if (h.note.indexOf("<p>") !== -1) h._block = !0;
+              } else if (lastTitled) {
+                // Orphaned plain-text paragraph: this text is a continuation
+                // of an earlier titled block that got interrupted by a
+                // table/list (those branches flush and null out h). Rather
+                // than starting a new title-less card at a hardcoded level
+                // (which could out-rank the next header and swallow it as a
+                // child), attach it as a sibling of the block it continues,
+                // labeled "(part N)".
+                const baseTitle = lastTitled.title;
+                partCounts[baseTitle] = (partCounts[baseTitle] || 1) + 1;
+                h = {
+                  level: lastTitled.level,
+                  title: baseTitle + " (part " + partCounts[baseTitle] + ")",
+                  note: t,
+                };
+                b = lastTitled.level;
+                v = lastTitled.level;
               } else ((h = { level: 1, title: "", note: t }), (b = 1));
             }
           }
