@@ -2092,6 +2092,300 @@
         text-align: center;
       }
 
+      /* ─── PRINT VIEW — article-style print preview for a single branch ───
+         Opened from a card's vine-rail (Publish category). Reuses the
+         .ln-* classes from the Article/Linear view so the on-screen
+         formatting matches, but always renders the full branch (ignores
+         collapsed state and Depth limit) since the point is to print
+         everything under the chosen card. ── */ #print-view {
+        display: none;
+        max-width: none;
+        margin: 0 auto;
+        padding: 132px 20px 120px;
+        font-family: var(--f-body);
+        color: var(--text-main);
+      }
+
+      body.print-preview-open #canvas {
+        display: none!important;
+      }
+
+      body.print-preview-open #print-view {
+        display: block;
+      }
+
+      /* Fixed header bar — pinned below the main app header, full width,
+         so the Tree / Print controls stay reachable while scrolling. */
+      #print-view-toolbar {
+        position: fixed;
+        top: 58px;
+        left: 0;
+        right: 0;
+        z-index: 290;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 0;
+        padding: 10px 16px;
+        background: var(--hdr-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-bottom: 1px solid rgba(255,255,255,.08);
+      }
+
+      body.mode-roots #print-view-toolbar,
+      body.mode-mist #print-view-toolbar {
+        border-bottom-color: rgba(0,0,0,.1);
+      }
+
+      .pv-tb-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: rgba(255,255,255,.09);
+        border: 1px solid rgba(255,255,255,.15);
+        border-radius: 20px;
+        padding: 6px 14px 6px 10px;
+        font-family: var(--f-display);
+        font-size: .78rem;
+        font-weight: 600;
+        color: inherit;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        flex-shrink: 0;
+      }
+
+      .pv-tb-btn:hover {
+        background: rgba(255,255,255,.16);
+      }
+
+      body.mode-roots .pv-tb-btn {
+        background: rgba(0,0,0,.08);
+        border-color: rgba(0,0,0,.15);
+      }
+
+      body.mode-roots .pv-tb-btn:hover {
+        background: rgba(0,0,0,.13);
+      }
+
+      body.mode-mist .pv-tb-btn {
+        background: rgba(0,0,0,.05);
+        border-color: #ccc;
+      }
+
+      body.mode-mist .pv-tb-btn:hover {
+        background: rgba(0,0,0,.08);
+      }
+
+      #pv-print-btn {
+        background: rgba(120,190,90,.22);
+        border-color: rgba(120,190,90,.45);
+      }
+
+      body.mode-mist #pv-print-btn {
+        background: rgba(80,150,60,.14);
+        border-color: rgba(80,150,60,.4);
+      }
+
+      /* Screen-only: everything but the print view hides while it's open, and
+         within print view only the article body (not the toolbar) is printed. */
+      @media print {
+        body.print-preview-open > *:not(#print-view) {
+          display: none!important;
+        }
+        body.print-preview-open #print-view {
+          display: block!important;
+          position: static!important;
+          max-width: none!important;
+          margin: 0!important;
+          padding: 0!important;
+          background: #fff!important;
+          color: #000!important;
+        }
+        #print-view-toolbar {
+          display: none!important;
+        }
+        #print-view .ln-kids {
+          border-left: none!important;
+        }
+        #print-view .ln-note {
+          opacity: 1!important;
+        }
+      }
+
+      /* ─── APA / A4 PAGINATED PREVIEW ───────────────────────────────
+         The preview renders real A4 sheets (793×1122 CSS px ≈ 210×297mm
+         at 96dpi) with 1in margins, Times New Roman 12pt, double-spaced
+         and APA heading levels. On screen the whole stack is scaled down
+         with a transform so it fits the window; in print the transform is
+         dropped and each .pv-page maps 1:1 onto one physical A4 sheet, so
+         what you see is exactly what comes out of the printer. ── */
+      #pv-viewport {
+        width: 100%;
+        overflow: hidden;
+      }
+
+      #pv-stack {
+        width: 793px;
+        transform-origin: top left;
+      }
+
+      .pv-page {
+        position: relative;
+        width: 793px;
+        height: 1122px;
+        overflow: hidden;
+        background: #fff;
+        color: #000;
+        margin: 0 0 26px;
+        box-shadow: 0 8px 30px rgba(0,0,0,.38);
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .pv-page-inner {
+        position: absolute;
+        left: 96px;
+        top: 96px;
+        width: 601px;
+        height: 930px;
+        overflow: hidden;
+      }
+
+      .pv-pagenum {
+        position: absolute;
+        top: 48px;
+        right: 96px;
+        font-family: "Times New Roman", Times, serif;
+        font-size: 16px;
+        line-height: 1;
+        color: #000;
+      }
+
+      /* Shared typographic scope: used by both the rendered pages and the
+         off-screen measuring box, so measured heights match printed ones. */
+      .pv-doc {
+        display: flow-root;
+        font-family: "Times New Roman", Times, serif;
+        font-size: 16px;
+        line-height: 2;
+        color: #000;
+        text-align: left;
+        word-break: break-word;
+      }
+
+      .pv-measure {
+        position: absolute!important;
+        left: -12000px;
+        top: 0;
+        width: 601px;
+        visibility: hidden;
+        pointer-events: none;
+        z-index: -1;
+      }
+
+      .pv-doc p,
+      .pv-doc div,
+      .pv-doc ul,
+      .pv-doc ol,
+      .pv-doc pre,
+      .pv-doc blockquote,
+      .pv-doc h1,
+      .pv-doc h2,
+      .pv-doc h3,
+      .pv-doc h4,
+      .pv-doc h5,
+      .pv-doc h6 {
+        margin: 0;
+        font-size: inherit;
+        line-height: 2;
+      }
+
+      .pv-doc .pv-p {
+        text-indent: 48px;
+      }
+
+      /* A paragraph continued from the previous page loses its indent. */
+      .pv-doc .pv-cont {
+        text-indent: 0;
+      }
+
+      .pv-doc ul,
+      .pv-doc ol {
+        padding-left: 48px;
+      }
+
+      .pv-doc blockquote {
+        margin-left: 48px;
+      }
+
+      .pv-doc .pv-h {
+        font-weight: 700;
+        text-indent: 0;
+      }
+
+      .pv-doc .pv-h-title,
+      .pv-doc .pv-h-1 {
+        text-align: center;
+      }
+
+      .pv-doc .pv-h-3 {
+        font-style: italic;
+      }
+
+      .pv-doc .pv-h-4 {
+        margin-left: 48px;
+      }
+
+      .pv-doc .pv-h-5 {
+        margin-left: 48px;
+        font-style: italic;
+      }
+
+      .pv-doc .pv-num {
+        margin-right: .45em;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .pv-doc a {
+        color: #000;
+        text-decoration: underline;
+      }
+
+      .pv-doc img {
+        max-width: 100%;
+      }
+
+      .pv-doc code,
+      .pv-doc pre {
+        font-family: "Courier New", Courier, monospace;
+        white-space: pre-wrap;
+      }
+
+      @media print {
+        body.print-preview-open #pv-viewport {
+          overflow: visible!important;
+          height: auto!important;
+        }
+        body.print-preview-open #pv-stack {
+          width: 793px!important;
+          margin: 0!important;
+          transform: none!important;
+        }
+        body.print-preview-open .pv-page {
+          margin: 0!important;
+          box-shadow: none!important;
+          break-after: page;
+          page-break-after: always;
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+        body.print-preview-open .pv-page:last-child {
+          break-after: auto;
+          page-break-after: auto;
+        }
+      }
+
       /* ─── LINEAR VIEW (all cards flattened as reorderable roots) ─── */ #util-rail-linroot.on {
         background: rgba(110,60,15,.22);
         border-color: rgba(180,110,40,.45);
@@ -16701,6 +16995,13 @@
       <button id="linear-view-close" title="Back to tree view">← Tree</button>
       <div id="linear-view-body"></div>
     </div>
+    <div id="print-view">
+      <div id="print-view-toolbar">
+        <button class="pv-tb-btn" id="print-view-close" title="Back to tree view">← Tree</button>
+        <button class="pv-tb-btn" id="pv-print-btn" title="Open the print dialog">🖨 Print</button>
+      </div>
+      <div id="print-view-body"></div>
+    </div>
     <div id="linroot-view">
       <div id="linroot-bar">
         <button id="linroot-view-close" title="Back to tree view">← Tree</button>
@@ -19413,6 +19714,406 @@
         if (linClose) linClose.addEventListener("click", closeLinear);
       })();
 
+      /* ─── Print preview (single branch) ───
+         Triggered from a card's vine-rail, under Publish → Print. Renders
+         just the chosen card and everything beneath it using the same
+         numbered, article-style markup as the Article/Linear view above —
+         but always fully expanded (collapsed cards and the Depth limit are
+         ignored) since the point of printing a branch is to get all of it
+         on the page. window.openBranchPrintPreview(node) is the entry
+         point called by the vine-rail's Print action. */
+      (() => {
+        const pvView = document.getElementById("print-view"),
+          pvBody = document.getElementById("print-view-body"),
+          pvClose = document.getElementById("print-view-close"),
+          pvPrintBtn = document.getElementById("pv-print-btn");
+        if (!pvView || !pvBody) return;
+
+        /* A4 at 96dpi. Kept a hair under the true 793.7 × 1122.5px so
+           rounding can never spill a sheet onto a blank extra page. */
+        const PAGE_W = 793,
+          PAGE_H = 1122,
+          MARGIN = 96,
+          CONTENT_W = PAGE_W - MARGIN * 2,
+          CONTENT_H = PAGE_H - MARGIN * 2;
+
+        /* ── measuring ──────────────────────────────────────────────
+           A hidden box that carries the exact same typographic scope
+           (.pv-doc) and column width as a real page body, so every
+           height we measure is the height the block will actually take
+           on paper. */
+        let measurer = null;
+        function getMeasurer() {
+          if (!measurer || !measurer.isConnected) {
+            measurer = document.createElement("div");
+            measurer.className = "pv-doc pv-measure";
+            measurer.style.width = CONTENT_W + "px";
+            document.body.appendChild(measurer);
+          }
+          return measurer;
+        }
+        function measure(el) {
+          if (!el) return 0;
+          const m = getMeasurer();
+          m.textContent = "";
+          m.appendChild(el);
+          const h = m.getBoundingClientRect().height;
+          m.textContent = "";
+          return h;
+        }
+
+        /* ── content model ──────────────────────────────────────────
+           The branch is flattened into a linear list of blocks. Each
+           node contributes one heading block plus one block per
+           top-level chunk of its note. Blocks are the unit of
+           pagination; notes may additionally be sliced mid-block. */
+        function plainTitle(html) {
+          const d = document.createElement("div");
+          d.innerHTML = html || "";
+          return d.textContent.trim();
+        }
+
+        const BLOCK_TAGS = /^(P|DIV|UL|OL|BLOCKQUOTE|PRE|TABLE|FIGURE|HR|H1|H2|H3|H4|H5|H6)$/;
+        const PARA_LIKE = /^(P|DIV|H1|H2|H3|H4|H5|H6)$/;
+
+        function noteBlocks(html) {
+          const holder = document.createElement("div");
+          holder.innerHTML = html || "";
+          const out = [];
+          let buf = null;
+          const flush = () => {
+            if (buf && buf.textContent.trim()) out.push(buf);
+            buf = null;
+          };
+          Array.from(holder.childNodes).forEach((ch) => {
+            if (ch.nodeType === 1 && BLOCK_TAGS.test(ch.tagName)) {
+              flush();
+              const el = ch.cloneNode(true);
+              el.classList.add(PARA_LIKE.test(el.tagName) ? "pv-p" : "pv-blk");
+              if (el.textContent.trim() || el.querySelector("img,hr,table"))
+                out.push(el);
+            } else {
+              if (ch.nodeType === 3 && !ch.data.trim()) return;
+              if (!buf) {
+                buf = document.createElement("p");
+                buf.className = "pv-p";
+              }
+              buf.appendChild(ch.cloneNode(true));
+            }
+          });
+          flush();
+          return out;
+        }
+
+        function makeHeading(node, depth, prefix) {
+          const h = document.createElement("p");
+          h.className =
+            "pv-h pv-h-" + (depth === 0 ? "title" : Math.min(depth, 5));
+          if (prefix) {
+            const n = document.createElement("span");
+            n.className = "pv-num";
+            n.textContent = prefix;
+            h.appendChild(n);
+          }
+          h.appendChild(
+            document.createTextNode(plainTitle(node.title) || "(untitled)")
+          );
+          return h;
+        }
+
+        function collect(node, depth, prefix, out) {
+          out.push({ type: "h", el: makeHeading(node, depth, prefix) });
+          noteBlocks(node.note || "").forEach((el) =>
+            out.push({ type: "b", el })
+          );
+          (node.kids || []).forEach((kid, i) => {
+            collect(kid, depth + 1, prefix + "." + (i + 1), out);
+          });
+        }
+
+        /* ── slicing a block at a character offset ──────────────────
+           Text characters and void elements (br/img/hr) each count as
+           one "atom", so a block can be cut anywhere while keeping its
+           inline markup (bold, links, list items…) intact on both
+           sides of the cut. */
+        function atomLen(node) {
+          if (node.nodeType === 3) return node.data.length;
+          if (node.nodeType !== 1) return 0;
+          if (/^(BR|IMG|HR)$/.test(node.tagName)) return 1;
+          let n = 0;
+          node.childNodes.forEach((c) => {
+            n += atomLen(c);
+          });
+          return n;
+        }
+        function atomText(node, out) {
+          if (node.nodeType === 3) {
+            out.push(node.data);
+            return;
+          }
+          if (node.nodeType !== 1) return;
+          if (/^(BR|IMG|HR)$/.test(node.tagName)) {
+            out.push("\n");
+            return;
+          }
+          node.childNodes.forEach((c) => atomText(c, out));
+        }
+        function sliceNode(node, start, end, state) {
+          if (node.nodeType === 3) {
+            const s = state.pos,
+              len = node.data.length;
+            state.pos = s + len;
+            const a = Math.max(start, s),
+              b = Math.min(end, s + len);
+            if (b <= a) return null;
+            return document.createTextNode(node.data.slice(a - s, b - s));
+          }
+          if (node.nodeType !== 1) return null;
+          if (/^(BR|IMG|HR)$/.test(node.tagName)) {
+            const s = state.pos;
+            state.pos = s + 1;
+            return s >= start && s < end ? node.cloneNode(true) : null;
+          }
+          const clone = node.cloneNode(false);
+          let has = false;
+          node.childNodes.forEach((c) => {
+            const r = sliceNode(c, start, end, state);
+            if (r) {
+              clone.appendChild(r);
+              has = true;
+            }
+          });
+          return has ? clone : null;
+        }
+        function sliceEl(el, start, end) {
+          return sliceNode(el, start, end, { pos: 0 });
+        }
+
+        /* Height of just the first rendered line of a block. */
+        function firstLineH(el) {
+          const s = sliceEl(el, 0, 1);
+          return s ? measure(s) : measure(el.cloneNode(true));
+        }
+
+        /* Cut `el` so its first part is at most `avail` tall. Returns
+           [head, tail] or null when not even one line fits. */
+        function splitBlock(el, avail) {
+          const total = atomLen(el);
+          if (total < 2) return null;
+          if (avail < firstLineH(el)) return null;
+
+          let lo = 1,
+            hi = total,
+            best = 0;
+          while (lo <= hi) {
+            const mid = (lo + hi) >> 1;
+            const c = sliceEl(el, 0, mid);
+            const h = c ? measure(c) : 0;
+            if (h <= avail + 0.5) {
+              best = mid;
+              lo = mid + 1;
+            } else hi = mid - 1;
+          }
+          if (best <= 0 || best >= total) return null;
+
+          const str = (() => {
+            const parts = [];
+            atomText(el, parts);
+            return parts.join("");
+          })();
+
+          /* Back off to the nearest word boundary so we never cut a
+             word in half, then skip the whitespace at the seam. */
+          let cut = best;
+          while (cut > 0 && !/\s/.test(str.charAt(cut - 1))) cut--;
+          if (cut === 0) cut = best;
+          let resume = cut;
+          while (resume < total && /\s/.test(str.charAt(resume))) resume++;
+          if (resume >= total) return null;
+
+          let head = sliceEl(el, 0, cut);
+          if (!head || measure(head) > avail + 0.5) {
+            cut = best;
+            resume = best;
+            head = sliceEl(el, 0, cut);
+          }
+          const tail = sliceEl(el, resume, total);
+          if (!head || !tail || !tail.textContent.trim()) return null;
+          tail.classList.add("pv-cont");
+          return [head, tail];
+        }
+
+        /* ── pagination ─────────────────────────────────────────────
+           Block-aware, not a pixel slice:
+             • a heading is never left stranded at the foot of a page —
+               it must fit together with the first line of whatever
+               follows it (its own note, or, for a note-less heading,
+               the run of headings below it and their first line);
+             • once a note has started on a page, the remainder of that
+               note is free to flow onto the next page, cut at a word
+               boundary. */
+        function paginate(blocks) {
+          const stack = document.createElement("div");
+          stack.id = "pv-stack";
+          let inner = null,
+            y = 0,
+            pageNo = 0;
+
+          function newPage() {
+            const page = document.createElement("div");
+            page.className = "pv-page";
+            inner = document.createElement("div");
+            inner.className = "pv-doc pv-page-inner";
+            inner.style.width = CONTENT_W + "px";
+            inner.style.height = CONTENT_H + "px";
+            const num = document.createElement("div");
+            num.className = "pv-pagenum";
+            num.textContent = String(++pageNo);
+            page.appendChild(inner);
+            page.appendChild(num);
+            stack.appendChild(page);
+            y = 0;
+          }
+          newPage();
+
+          const queue = blocks.slice();
+          let guard = 0;
+          while (queue.length) {
+            if (++guard > 50000) break;
+            const b = queue.shift();
+            const h = measure(b.el);
+
+            if (b.type === "h") {
+              let need = h;
+              for (let j = 0; j < queue.length; j++) {
+                if (queue[j].type === "h") need += measure(queue[j].el);
+                else {
+                  need += firstLineH(queue[j].el);
+                  break;
+                }
+              }
+              if (y > 0 && y + need > CONTENT_H + 0.5) newPage();
+              inner.appendChild(b.el);
+              y += h;
+              continue;
+            }
+
+            if (y + h <= CONTENT_H + 0.5) {
+              inner.appendChild(b.el);
+              y += h;
+              continue;
+            }
+
+            const parts = CONTENT_H - y > 0 ? splitBlock(b.el, CONTENT_H - y) : null;
+            if (parts) {
+              inner.appendChild(parts[0]);
+              queue.unshift({ type: "b", el: parts[1] });
+              newPage();
+            } else if (y > 0) {
+              newPage();
+              queue.unshift(b);
+            } else {
+              /* Taller than a whole empty page and unsplittable —
+                 place it rather than loop forever. */
+              inner.appendChild(b.el);
+              y += h;
+            }
+          }
+          return stack;
+        }
+
+        /* ── screen scaling ─────────────────────────────────────────
+           Pages keep their true A4 pixel size; the stack is simply
+           scaled to fit the window, so the preview is a faithful
+           reduction of the printed sheet. */
+        function rescale() {
+          const vp = document.getElementById("pv-viewport"),
+            stack = document.getElementById("pv-stack");
+          if (!vp || !stack) return;
+          const w = vp.clientWidth || PAGE_W;
+          const s = Math.min(1, w / PAGE_W);
+          stack.style.transform = s < 1 ? "scale(" + s + ")" : "none";
+          stack.style.marginLeft = Math.max(0, (w - PAGE_W * s) / 2) + "px";
+          vp.style.height = stack.scrollHeight * s + "px";
+        }
+        let rsT = null;
+        window.addEventListener("resize", () => {
+          if (!document.body.classList.contains("print-preview-open")) return;
+          clearTimeout(rsT);
+          rsT = setTimeout(rescale, 120);
+        });
+
+        /* Injected late so it wins the cascade over any other @page
+           rule in the document (e.g. the landscape slides view). */
+        function setPageStyle(on) {
+          let st = document.getElementById("pv-page-style");
+          if (on) {
+            if (!st) {
+              st = document.createElement("style");
+              st.id = "pv-page-style";
+              st.textContent = "@page{size:210mm 297mm;margin:0}";
+              document.head.appendChild(st);
+            }
+          } else if (st) st.remove();
+        }
+
+        let _pvPrevFocusMode = false;
+        function openBranchPrintPreview(rootNode) {
+          if (!rootNode) return;
+          document.body.classList.add("print-preview-open");
+          setPageStyle(true);
+          _pvPrevFocusMode = document.body.classList.contains("focus-mode");
+          if (!_pvPrevFocusMode) {
+            document.body.classList.add("focus-mode");
+            const fw = document.getElementById("focus-radio-wrap");
+            if (fw) {
+              fw.classList.add("focus-on");
+              fw.setAttribute("aria-pressed", "true");
+            }
+          }
+          const build = () => {
+            const blocks = [];
+            collect(rootNode, 0, "1", blocks);
+            const stack = paginate(blocks);
+            pvBody.textContent = "";
+            const vp = document.createElement("div");
+            vp.id = "pv-viewport";
+            vp.appendChild(stack);
+            pvBody.appendChild(vp);
+            rescale();
+          };
+          build();
+          /* Fonts settling after the first pass would change every
+             measured height, so lay it out once more when they're in. */
+          if (document.fonts && document.fonts.ready)
+            document.fonts.ready
+              .then(() => {
+                if (document.body.classList.contains("print-preview-open"))
+                  build();
+              })
+              .catch(() => {});
+          window.scrollTo(0, 0);
+        }
+        function closeBranchPrintPreview() {
+          document.body.classList.remove("print-preview-open");
+          setPageStyle(false);
+          if (!_pvPrevFocusMode) {
+            document.body.classList.remove("focus-mode");
+            const fw = document.getElementById("focus-radio-wrap");
+            if (fw) {
+              fw.classList.remove("focus-on");
+              fw.setAttribute("aria-pressed", "false");
+            }
+          }
+        }
+
+        window.openBranchPrintPreview = openBranchPrintPreview;
+        window.closeBranchPrintPreview = closeBranchPrintPreview;
+
+        if (pvClose) pvClose.addEventListener("click", closeBranchPrintPreview);
+        if (pvPrintBtn) pvPrintBtn.addEventListener("click", () => window.print());
+      })();
+
       /* ─── Depth control: how many hierarchy levels are visible ───
          Purely a CSS visibility filter (data-depth-limit on #canvas).
          Never touches node.open or the tree data — toggling it back to
@@ -20837,6 +21538,15 @@
                   label: "TXT",
                   fn: () => {
                     i(t);
+                  },
+                },
+                {
+                  icon: "🖨",
+                  label: "Print",
+                  fn: () => {
+                    if (typeof window.openBranchPrintPreview === "function") {
+                      window.openBranchPrintPreview(t);
+                    }
                   },
                 },
               ],
@@ -33828,8 +34538,18 @@
           else if (e.key === "End") fsGoEnd(true);
         });
 
+        let _slPrevFocusMode = false;
         function open() {
           document.body.classList.add("slides-open");
+          _slPrevFocusMode = document.body.classList.contains("focus-mode");
+          if (!_slPrevFocusMode) {
+            document.body.classList.add("focus-mode");
+            const fw = document.getElementById("focus-radio-wrap");
+            if (fw) {
+              fw.classList.add("focus-on");
+              fw.setAttribute("aria-pressed", "true");
+            }
+          }
           fitScale();
           build();
           view.scrollTop = 0;
@@ -33837,6 +34557,14 @@
         function close() {
           if (fsFrame) exitFs();
           document.body.classList.remove("slides-open");
+          if (!_slPrevFocusMode) {
+            document.body.classList.remove("focus-mode");
+            const fw = document.getElementById("focus-radio-wrap");
+            if (fw) {
+              fw.classList.remove("focus-on");
+              fw.setAttribute("aria-pressed", "false");
+            }
+          }
           bodyEl.innerHTML = "";
         }
         /* Slides are built once, on open, from whatever tree is active at
@@ -34254,11 +34982,15 @@
       (function(){
         const wrap = document.getElementById('focus-radio-wrap');
         if(!wrap) return;
-        let on = false;
         wrap.addEventListener('click', function(e){
           e.stopPropagation();
           e.preventDefault();
-          on = !on;
+          /* Read the current state straight off the body class rather than
+             tracking a separate flag — print/slides preview can flip
+             focus-mode on programmatically before the user ever clicks
+             this button, and a separate flag would drift out of sync with
+             what's actually on screen. */
+          const on = !document.body.classList.contains('focus-mode');
           wrap.classList.toggle('focus-on', on);
           wrap.setAttribute('aria-pressed', on);
           document.body.classList.toggle('focus-mode', on);
