@@ -1803,21 +1803,12 @@
         color: #E0B888;
       }
 
-      /* Depth visibility control — hides deeper levels via CSS only. Hiding a level's .bk also hides everything nested beneath it (they're DOM descendants), so node.open and the tree structure itself are never touched. */ #canvas[data-depth-limit="1"] .bc[data-depth="0"] > .bk {
-        display: none!important;
-      }
-
-      #canvas[data-depth-limit="2"] .bc[data-depth="1"] > .bk {
-        display: none!important;
-      }
-
-      #canvas[data-depth-limit="3"] .bc[data-depth="2"] > .bk {
-        display: none!important;
-      }
-
-      #canvas[data-depth-limit="4"] .bc[data-depth="3"] > .bk {
-        display: none!important;
-      }
+      /* Depth visibility control — applied by actually collapsing (node.open = false)
+         the cards at the selected level, same as clicking their ▾ toggle. Collapsing
+         a level's card also hides everything nested beneath it (they're DOM
+         descendants), but each descendant's own open/closed state is left exactly
+         as it was, so returning to a shallower limit reveals branches exactly as
+         the person left them. See applyDepthLimit() below. */
 
       /* Roots mode — lighter parchment panel, mirrors .vine-rail */ body.mode-roots #util-rail {
         background: linear-gradient(175deg,rgba(225,205,172,.97) 0%,rgba(210,188,152,.98) 100%);
@@ -4042,12 +4033,84 @@
         font-style: italic;
       }
 
+      #shine-top-actions {
+        position: fixed;
+        top: calc(env(safe-area-inset-top,0px) + 14px);
+        right: 16px;
+        z-index: 970;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      #shine-edit-toggle {
+        display: flex;
+        align-items: center;
+        background: rgba(0,0,0,.25);
+        border: 1px solid rgba(255,255,255,.12);
+        border-radius: 8px;
+        padding: 2px;
+        gap: 2px;
+        box-shadow: 0 4px 14px rgba(0,0,0,.4);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+      }
+
+      body.mode-roots #shine-edit-toggle {
+        background: rgba(0,0,0,.1);
+        border-color: rgba(0,0,0,.18);
+      }
+
+      body.mode-mist #shine-edit-toggle {
+        background: rgba(0,0,0,.06);
+        border-color: #ddd;
+      }
+
       #shine-note-scroll {
         overflow-y: auto;
         touch-action: pan-y;
         flex: 1;
         min-height: 0;
         padding: 14px 22px 20px;
+      }
+
+      #shine-md-edit-ta {
+        display: none;
+        width: 100%;
+        height: 100%;
+        min-height: 80px;
+        box-sizing: border-box;
+        padding: 0;
+        font-family: var(--f-body);
+        font-size: .92rem;
+        line-height: 1.72;
+        color: #ECD890;
+        opacity: .85;
+        background: transparent;
+        border: none;
+        outline: none;
+        resize: none;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
+        word-break: break-word;
+      }
+
+      body.mode-mist #shine-md-edit-ta {
+        color: #222;
+      }
+
+      body.mode-roots #shine-md-edit-ta {
+        color: #3A2A08;
+        opacity: 1;
+      }
+
+      #shine-note-scroll.shine-md-editing #shine-note {
+        display: none;
+      }
+
+      #shine-note-scroll.shine-md-editing #shine-md-edit-ta {
+        display: block;
       }
 
       #shine-note {
@@ -5313,7 +5376,8 @@
       #shine-title,
       #shine-note,
       #shine-note p,
-      #shine-note div {
+      #shine-note div,
+      #shine-md-edit-ta {
         unicode-bidi: plaintext;
         direction: auto;
         text-align: start;
@@ -14014,10 +14078,6 @@
       }
 
       #shine-harvest-all-btn {
-        position: fixed;
-        top: calc(env(safe-area-inset-top,0px) + 14px);
-        right: 16px;
-        z-index: 970;
         background: rgba(80,130,30,.25);
         border: 1px solid rgba(120,180,40,.45);
         border-radius: 8px;
@@ -17876,6 +17936,15 @@
         Card's Info
       </button>
       <div id="shine-fmt-bar" style="display: none"></div>
+      <div id="shine-top-actions">
+        <div id="shine-edit-toggle">
+          <button id="shine-edit-tab-fmt" class="soil-edit-tab active" type="button">
+            Formatted
+          </button>
+          <button id="shine-edit-tab-md" class="soil-edit-tab" type="button">MD</button>
+        </div>
+        <button id="shine-harvest-all-btn" title="Harvest all content to branches">🌾 Harvest all</button>
+      </div>
       <div id="shine-wrap">
         <div id="shine-card">
           <div id="shine-title-row">
@@ -17892,11 +17961,15 @@
               contenteditable="true"
               spellcheck="false"
             ></div>
+            <textarea
+              id="shine-md-edit-ta"
+              spellcheck="true"
+              autocapitalize="sentences"
+            ></textarea>
           </div>
           <div id="shine-hint">Tap to edit · select text for formatting</div>
         </div>
       </div>
-      <button id="shine-harvest-all-btn" title="Harvest all content to branches">🌾 Harvest all</button>
     </div>
     <div id="gh-handle">
       <div id="gh-handle-notch"></div>
@@ -20115,19 +20188,54 @@
       })();
 
       /* ─── Depth control: how many hierarchy levels are visible ───
-         Purely a CSS visibility filter (data-depth-limit on #canvas).
-         Never touches node.open or the tree data — toggling it back to
-         ∞ always reveals branches exactly as they were left. */
+         Collapses the cards AT the selected level — i.e. sets node.open = false
+         for every node at depth (val - 1), exactly as if their ▾ toggle had been
+         clicked. That naturally hides everything nested beneath them (DOM/data
+         descendants), but never touches the open/closed state of those deeper
+         nodes themselves.
+         Each call first restores whatever nodes the *previous* call auto-collapsed
+         (and only those — any card a person collapsed by hand is left alone), so
+         moving the depth limit around, or back to ∞, always reveals branches
+         exactly as the person left them. */
+      let _depthAutoCollapsed = [];
+      function _collectNodesAtDepth(list, depth, targetDepth, out) {
+        (list || []).forEach((n) => {
+          if (!n.kids || !n.kids.length) return;
+          if (depth === targetDepth) out.push(n);
+          else _collectNodesAtDepth(n.kids, depth + 1, targetDepth, out);
+        });
+      }
       function applyDepthLimit(val) {
         const canvas = document.getElementById("canvas"),
           depthBtn = document.getElementById("util-rail-depth");
-        ("inf" === val
-          ? canvas.removeAttribute("data-depth-limit")
-          : canvas.setAttribute("data-depth-limit", val),
-          depthBtn.classList.toggle("limited", "inf" !== val),
+
+        _depthAutoCollapsed.forEach((n) => {
+          n.open = true;
+        });
+        _depthAutoCollapsed = [];
+
+        if ("inf" === val) {
+          canvas.removeAttribute("data-depth-limit");
+        } else {
+          canvas.setAttribute("data-depth-limit", val);
+          const targetDepth = parseInt(val, 10) - 1,
+            nodes = [];
+          _collectNodesAtDepth(aTree().roots, 0, targetDepth, nodes);
+          nodes.forEach((n) => {
+            if (n.open) {
+              n.open = false;
+              _depthAutoCollapsed.push(n);
+            }
+          });
+        }
+
+        (depthBtn.classList.toggle("limited", "inf" !== val),
           document.querySelectorAll(".util-depth-btn").forEach((b) => {
             b.classList.toggle("active", b.dataset.depthVal === val);
-          }));
+          }),
+          "function" == typeof _onToggleRender
+            ? _onToggleRender()
+            : renderBlocks());
       }
       (() => {
         const g = document.getElementById("util-depth-group"),
@@ -21118,8 +21226,8 @@
               return `<div class="bw">\n  <div class="bc ${lv}" data-depth="${depth}">\n    <div class="bh">\n      ${toggleHtml}\n      <div class="bt ${df}">${title}</div>\n    </div>${noteHtml}<div class="bp"></div>${kidsHtml}\n  </div>\n</div>`;
             })(e, 0),
             modeBtns = `<div id="ro-modes">\n  <button class="ro-mode-btn${"leaves" === t ? " active" : ""}" data-mode="leaves" title="Brighter Leaves">🌿</button>\n  <button class="ro-mode-btn${"roots" === t ? " active" : ""}" data-mode="roots" title="Brighter Roots">🪨</button>\n  <button class="ro-mode-btn${"mist" === t ? " active" : ""}" data-mode="mist" title="Mist">☁️</button>\n</div>`,
-            css = `\n:root{\n  --f-display:'Palatino Linotype','Book Antiqua',Palatino,'Georgia',serif;\n  --f-body:Georgia,'Times New Roman',Times,serif;\n  --bg-page:#1E1008;\n  --bg-grad:radial-gradient(ellipse at 25% 0%,#2E1A0A 0%,#1A0E06 70%);\n  --hdr-bg:rgba(14,6,2,.96);\n  --hdr-border:#38200C;\n  --text-main:#E2D8C0;\n}\nbody.mode-roots{\n  --bg-page:#E2D8C0;\n  --bg-grad:radial-gradient(ellipse at 25% 0%,#EDE0C4 0%,#D4C8A0 70%);\n  --hdr-bg:rgba(226,216,192,.97);\n  --hdr-border:#B0A070;\n  --text-main:#1E1008;\n}\nbody.mode-mist{\n  --bg-page:#ffffff;\n  --bg-grad:#ffffff;\n  --hdr-bg:rgba(255,255,255,.97);\n  --hdr-border:#cccccc;\n  --text-main:#111111;\n}\n*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}\nhtml,body{min-height:100vh;background:var(--bg-grad);color:var(--text-main);font-family:var(--f-body);overflow-x:hidden;transition:background .25s,color .25s}\n/* Read-only banner + mode switcher */\n#ro-banner{position:fixed;top:0;left:0;right:0;z-index:200;background:var(--hdr-bg);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--hdr-border);padding:8px 16px;display:flex;align-items:center;gap:12px;font-family:var(--f-display);min-height:44px}\n#ro-banner-title{flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;white-space:nowrap;scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch}\n#ro-banner-title::-webkit-scrollbar{display:none}\n#ro-tree-name{font-family:var(--f-display);font-weight:700;font-size:.95rem;color:#C8C0A0;letter-spacing:-.01em;display:inline-block;white-space:nowrap}\nbody.mode-roots #ro-tree-name{color:#4A3010}\nbody.mode-mist #ro-tree-name{color:#222}\n#ro-modes{flex:0 0 auto;display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:3px 5px}\nbody.mode-roots #ro-modes{background:rgba(0,0,0,.07);border-color:rgba(0,0,0,.2)}\nbody.mode-mist #ro-modes{background:rgba(0,0,0,.05);border-color:#bbb}\n.ro-mode-btn{background:none;border:none;cursor:pointer;font-size:.85rem;padding:4px 7px;border-radius:14px;transition:background .15s,transform .15s;opacity:.5;line-height:1}\n.ro-mode-btn:hover{opacity:.8}\n.ro-mode-btn.active{opacity:1;transform:scale(1.08)}\nbody.mode-leaves .ro-mode-btn[data-mode="leaves"]{background:rgba(100,160,30,.35);color:#C8EE80}\nbody.mode-roots .ro-mode-btn[data-mode="roots"]{background:rgba(60,40,10,.25);color:#5A3A10}\nbody.mode-mist .ro-mode-btn[data-mode="mist"]{background:rgba(0,0,0,.12);color:#222}\n/* Footer */\n#ro-footer{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--hdr-bg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--hdr-border);padding:6px 16px;display:flex;align-items:center;gap:10px;min-height:38px;font-family:var(--f-display)}\n#ro-footer-badge{font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;color:#C8A060;opacity:.75;border:1px solid rgba(200,160,96,.3);border-radius:5px;padding:2px 7px}\nbody.mode-roots #ro-footer-badge{color:#7A5010;border-color:rgba(122,80,16,.3)}\nbody.mode-mist #ro-footer-badge{color:#888;border-color:rgba(0,0,0,.15)}\n#ro-footer-created{font-size:.7rem;color:inherit;opacity:.45;letter-spacing:.01em;white-space:nowrap}\n#ro-footer-logo-wrap{margin-left:auto;display:flex;align-items:center;gap:5px}\n#ro-footer-logo{height:22px;width:auto;object-fit:contain;opacity:.7;filter:drop-shadow(0 1px 3px rgba(0,0,0,.25))}\nbody.mode-roots #ro-footer-logo{opacity:.55}\nbody.mode-mist #ro-footer-logo{opacity:.5}\n/* Nav overlay */\n#ro-nav{position:fixed;inset:0;z-index:850;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:block;overflow:hidden;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .32s cubic-bezier(.4,0,.2,1),visibility 0s linear .32s}\n#ro-nav.open{opacity:1;visibility:visible;pointer-events:all;transition:opacity .32s cubic-bezier(.4,0,.2,1),visibility 0s linear 0s}\n#ro-nav-drawer{position:absolute;top:0;bottom:0;left:0;width:80%;max-width:420px;z-index:20;transform:translateX(-100%);transition:transform .32s cubic-bezier(.4,0,.2,1);pointer-events:none;overflow:visible}\n#ro-nav.open #ro-nav-drawer{transform:translateX(0);pointer-events:all}\n#ro-nav-box{position:absolute;top:0;bottom:0;left:0;right:0;overflow-y:auto;overflow-x:hidden;touch-action:pan-y;background:linear-gradient(to bottom,#1A1006 0%,#1A1006 72px,rgba(18,10,4,.92) 72px);border-right:1px solid rgba(184,144,32,.28);box-shadow:6px 0 32px rgba(0,0,0,.65);padding:28px 0 32px;display:flex;flex-direction:column}\nbody.mode-roots #ro-nav-box{background:linear-gradient(to bottom,#E8D8B4 0%,#E8D8B4 72px,rgba(232,216,180,.88) 72px);border-right-color:rgba(120,80,20,.3);box-shadow:6px 0 28px rgba(100,60,10,.35)}\nbody.mode-mist #ro-nav-box{background:linear-gradient(to bottom,#fff 0%,#fff 72px,rgba(255,255,255,.88) 72px);border-right-color:#ddd;box-shadow:6px 0 24px rgba(0,0,0,.18)}\n#ro-nav-title{padding:0 20px 14px;margin-bottom:4px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;gap:6px}\nbody.mode-roots #ro-nav-title{border-bottom-color:rgba(0,0,0,.1)}\nbody.mode-mist #ro-nav-title{border-bottom-color:#eee}\n#ro-nav-caption{font-family:var(--f-display);font-weight:800;font-size:.68rem;letter-spacing:.07em;text-transform:uppercase;color:#806050;opacity:.7}\nbody.mode-roots #ro-nav-caption{color:#7A4820}\nbody.mode-mist #ro-nav-caption{color:#999}\n#ro-nav-tree-label{font-family:var(--f-display);font-weight:700;font-size:.95rem;font-style:italic;color:#B8D880;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\nbody.mode-roots #ro-nav-tree-label{color:#5A3A10}\nbody.mode-mist #ro-nav-tree-label{color:#222}\n#ro-nav-list{padding:0 8px 8px;overflow-y:auto;overflow-x:auto;flex:1;-webkit-overflow-scrolling:touch}\n#ro-nav-btn{position:fixed;top:25%;left:0;transform:translateY(-50%) translateX(var(--ronav-btn-x,0px));z-index:870;writing-mode:vertical-rl;text-orientation:mixed;background:#1A1006;border:1px solid rgba(184,144,32,.35);border-left:none;border-radius:0 8px 8px 0;padding:14px 7px;cursor:pointer;font-family:var(--f-display);font-weight:700;font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;color:#C8A028;white-space:nowrap;line-height:1;box-shadow:4px 0 14px rgba(0,0,0,.5);transition:transform .32s cubic-bezier(.4,0,.2,1),background .14s,color .14s;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;opacity:0;pointer-events:none}\n#ro-nav.open #ro-nav-btn{opacity:1;pointer-events:all}\nbody.mode-roots #ro-nav-btn{background:#E8D8B4;border-color:rgba(120,80,20,.3);border-left:none;color:#8A5008;box-shadow:4px 0 12px rgba(100,60,10,.28)}\nbody.mode-mist #ro-nav-btn{background:#fff;border-color:#ddd;border-left:none;color:#8A6010;box-shadow:4px 0 10px rgba(0,0,0,.14)}\n/* Nav tree trigger button */\n#ro-nav-trigger{position:fixed;left:10px;top:66px;transform:translateY(-50%) !important;z-index:301;width:44px;height:44px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;touch-action:manipulation;padding:0;overflow:visible}\n#ro-nav-trigger svg{width:64px;height:64px;display:block;pointer-events:none}\n#ro-nav-trigger .ntt-frame{fill:rgba(30,16,6,.22);stroke:#C8A060;stroke-width:1.8;opacity:.92;transition:fill .2s,stroke .2s,opacity .2s,filter .2s;filter:drop-shadow(0 2px 6px rgba(0,0,0,.6))}\nbody.mode-roots #ro-nav-trigger .ntt-frame{fill:rgba(232,216,180,.22);stroke:#8A5020}\nbody.mode-mist #ro-nav-trigger .ntt-frame{fill:rgba(255,255,255,.22);stroke:#888}\n#ro-nav-trigger.active .ntt-frame{stroke:rgba(124,216,96,.9);filter:drop-shadow(0 0 7px rgba(124,216,96,.5)) drop-shadow(0 2px 6px rgba(0,0,0,.4))}\n#ro-nav-trigger .ntt-icon line:nth-child(-n+3){stroke-width:3.2}\n#ro-nav-trigger .ntt-icon line:nth-child(n+4):nth-child(-n+5){stroke-width:2.6}\n#ro-nav-trigger .ntt-icon line:nth-child(n+6):nth-child(-n+11){stroke-width:2}\n#ro-nav-trigger .ntt-icon line:nth-child(n+12){stroke-width:1.4}\n#ro-nav-trigger .ntt-icon{stroke:#C8A060;opacity:.92;transition:stroke .2s,filter .2s,opacity .2s}\nbody.mode-roots #ro-nav-trigger .ntt-icon{stroke:#5A3A10}\nbody.mode-mist #ro-nav-trigger .ntt-icon{stroke:#444}\n#ro-nav-trigger.active .ntt-icon{stroke:#A8F088;opacity:1;filter:drop-shadow(0 0 3px rgba(124,216,96,.75))}\n@keyframes nttROPulse{0%{transform:translateY(-50%) scale(1)}40%{transform:translateY(-50%) scale(1.18)}100%{transform:translateY(-50%) scale(1)}}\n#ro-nav-trigger.pulse{animation:nttROPulse .3s cubic-bezier(.34,1.4,.64,1) !important}\n/* Nav cards */\n.ronav-card{padding:7px 12px 7px 20px;font-family:var(--f-body);font-size:.82rem;color:#A0B870;cursor:pointer;border-radius:6px;transition:background .1s;display:flex;align-items:center;gap:6px;margin:1px 0;white-space:nowrap;min-width:0;line-height:1.35;position:relative}\n.ronav-card-text{display:inline-block;white-space:normal;word-break:break-word;line-height:1.35;vertical-align:middle}\n.ronav-card:hover{background:rgba(255,255,255,.07);color:#D0E8A0}\n.ronav-card.sel{background:rgba(70,100,20,.2);color:#D8ECA0;font-weight:600}\n.ronav-kids-wrap{position:relative;margin-left:20px;min-width:max-content}\n.ronav-kids-wrap::before{content:"";position:absolute;left:0;top:0;bottom:18px;width:1px;background:linear-gradient(to bottom,rgba(100,180,60,0) 0%,rgba(100,180,60,.18) 8%,rgba(100,180,60,.18) 88%,rgba(100,180,60,0) 100%);border-radius:1px;pointer-events:none}\n.ronav-kids-wrap>.ronav-last-child::before{display:none}\n.ronav-child-wrap{position:relative}\n.ronav-child-wrap>.ronav-card::before{content:"";position:absolute;left:-10px;top:50%;width:10px;height:1px;background:linear-gradient(to right,rgba(100,180,60,.18),rgba(100,180,60,.10));border-radius:1px;pointer-events:none}\n.ronav-root-wrap>.ronav-card::before{display:none}\nbody.mode-roots .ronav-kids-wrap::before{background:linear-gradient(to bottom,rgba(80,120,20,0) 0%,rgba(80,120,20,.14) 8%,rgba(80,120,20,.14) 88%,rgba(80,120,20,0) 100%)}\nbody.mode-roots .ronav-child-wrap>.ronav-card::before{background:linear-gradient(to right,rgba(80,120,20,.14),rgba(80,120,20,.08))}\nbody.mode-mist .ronav-kids-wrap::before{background:linear-gradient(to bottom,rgba(60,140,30,0) 0%,rgba(60,140,30,.12) 8%,rgba(60,140,30,.12) 88%,rgba(60,140,30,0) 100%)}\nbody.mode-mist .ronav-child-wrap>.ronav-card::before{background:linear-gradient(to right,rgba(60,140,30,.12),rgba(60,140,30,.06))}\nbody.mode-roots .ronav-card{color:#5A4420}\nbody.mode-roots .ronav-card:hover{background:rgba(0,0,0,.06);color:#3A2A10}\nbody.mode-roots .ronav-card.sel{background:rgba(0,0,0,.08);color:#2A1800}\nbody.mode-mist .ronav-card{color:#444}\nbody.mode-mist .ronav-card:hover{background:rgba(0,0,0,.05);color:#111}\nbody.mode-mist .ronav-card.sel{background:rgba(0,0,0,.06);color:#000}\n/* Eye trigger */\n#ro-eye-trigger{position:fixed;right:10px;top:66px;transform:translateY(-50%) !important;z-index:301;width:44px;height:44px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;touch-action:manipulation;padding:0;overflow:visible}\n#ro-eye-trigger svg{width:64px;height:64px;display:block;pointer-events:none}\n#ro-eye-trigger .et-ring-bg{fill:none;stroke:var(--hdr-border);stroke-width:3;opacity:0;transition:stroke .2s,opacity .2s}\nbody.mode-mist #ro-eye-trigger .et-ring-bg{stroke:#bbb}\n#ro-eye-trigger.active .et-ring-bg{stroke:rgba(124,216,96,.55);opacity:1}\n#ro-eye-trigger .et-icon{stroke:#C8A060;stroke-width:4;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:.7;transition:stroke .2s,filter .2s,opacity .2s}\nbody.mode-roots #ro-eye-trigger .et-icon{stroke:#5A3A10}\nbody.mode-mist #ro-eye-trigger .et-icon{stroke:#444}\n#ro-eye-trigger .et-pupil{fill:#C8A060;stroke:none;opacity:.7;transition:fill .2s,filter .2s,opacity .2s}\nbody.mode-roots #ro-eye-trigger .et-pupil{fill:#5A3A10}\nbody.mode-mist #ro-eye-trigger .et-pupil{fill:#444}\n#ro-eye-trigger.active .et-icon{stroke:#A8F088;filter:drop-shadow(0 0 4px rgba(124,216,96,.85));opacity:1}\n#ro-eye-trigger.active .et-pupil{fill:#A8F088;filter:drop-shadow(0 0 4px rgba(124,216,96,.85));opacity:1}\n@keyframes roEtPulse{0%{transform:translateY(-50%) scale(1)}40%{transform:translateY(-50%) scale(1.18)}100%{transform:translateY(-50%) scale(1)}}\n#ro-eye-trigger.pulse{animation:roEtPulse .3s cubic-bezier(.34,1.4,.64,1) !important}\n/* Util rail */\n#ro-util-rail{position:fixed;top:90px;right:10px;z-index:299;width:46px;background:linear-gradient(175deg,rgba(38,22,10,.97) 0%,rgba(28,14,6,.98) 100%);border:1px solid rgba(120,70,25,.55);border-radius:12px;box-shadow:0 6px 22px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.4),inset 0 1px 0 rgba(180,110,50,.07);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:7px 0 8px;display:flex;flex-direction:column;align-items:center;gap:0;overflow:hidden;transform-origin:top center;opacity:0;visibility:hidden;transform:scaleY(.8) translateY(-8px);pointer-events:none;transition:opacity .16s ease,transform .22s cubic-bezier(.34,1.3,.64,1),visibility 0s linear .22s}\n#ro-util-rail.open{opacity:1;visibility:visible;transform:scaleY(1) translateY(0);pointer-events:all;transition:opacity .18s ease,transform .24s cubic-bezier(.34,1.3,.64,1)}\nbody.mode-roots #ro-util-rail{background:linear-gradient(175deg,rgba(225,205,172,.97) 0%,rgba(210,188,152,.98) 100%);border-color:rgba(140,90,30,.4);box-shadow:0 6px 20px rgba(70,35,8,.3),0 2px 8px rgba(0,0,0,.1),inset 0 1px 0 rgba(220,170,80,.1)}\nbody.mode-mist #ro-util-rail{background:rgba(255,255,255,.95);border:1px solid #ccc;box-shadow:0 4px 16px rgba(0,0,0,.14)}\n.ro-vine-stem{position:absolute;left:50%;transform:translateX(-50%);top:10px;bottom:10px;width:1.5px;background:linear-gradient(180deg,rgba(140,80,25,0) 0%,rgba(160,90,30,.5) 20%,rgba(170,100,35,.65) 50%,rgba(155,85,28,.45) 80%,rgba(120,65,18,0) 100%);border-radius:1px;pointer-events:none;animation:roStemGlow 3s ease-in-out infinite}\n@keyframes roStemGlow{0%,100%{opacity:.55}50%{opacity:.9}}\nbody.mode-mist #ro-util-rail .ro-vine-stem{display:none}\n.ro-util-btn{width:38px;height:34px;border-radius:9px;border:1px solid rgba(140,80,25,.32);background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:background .16s,border-color .16s,transform .14s;position:relative;z-index:2;margin:1.5px 0;flex-shrink:0;color:#C4956A}\n.ro-util-btn:hover{background:rgba(110,60,15,.32);border-color:rgba(180,110,40,.55);color:#E0B888}\n.ro-util-btn:active{transform:scale(.84) !important}\nbody.mode-roots .ro-util-btn{border-color:rgba(140,90,28,.28);color:#7A5030}\nbody.mode-roots .ro-util-btn:hover{background:rgba(130,80,20,.13);color:#4A2808}\nbody.mode-mist .ro-util-btn{border-color:#ddd;color:#333}\nbody.mode-mist .ro-util-btn:hover{background:rgba(0,0,0,.06);border-color:#bbb}\n.ro-util-icon{font-size:.84rem;line-height:1;pointer-events:none}\n.ro-util-label{font-family:var(--f-display);font-size:.4rem;letter-spacing:.05em;text-transform:uppercase;opacity:.72;line-height:1;pointer-events:none;transition:opacity .12s}\n.ro-util-btn:hover .ro-util-label{opacity:1}\n.ro-util-sep{width:24px;height:1px;background:rgba(140,80,25,.28);margin:3px 0;flex-shrink:0;border-radius:1px;position:relative;z-index:2}\nbody.mode-roots .ro-util-sep{background:rgba(150,95,30,.25)}\nbody.mode-mist .ro-util-sep{background:#ddd}\n/* Depth group */\n.ro-depth-group{width:100%;display:flex;flex-direction:column;align-items:center;position:relative;z-index:2}\n.ro-depth-actions{width:100%;display:flex;flex-direction:column;align-items:center;overflow:hidden;max-height:0;opacity:0;transition:max-height .35s cubic-bezier(.4,0,.2,1),opacity .22s ease;gap:0}\n.ro-depth-group.open .ro-depth-actions{max-height:240px;opacity:1}\n.ro-depth-btn{width:38px;height:30px;border-radius:8px;border:1px solid rgba(140,80,25,.28);background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:var(--f-display);font-weight:700;font-size:.78rem;color:#C4956A;margin:1.5px 0;flex-shrink:0;opacity:0;transform:translateY(-5px) scaleY(.7);transform-origin:top center;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:background .14s,border-color .14s,transform .14s,opacity .14s,color .14s}\n.ro-depth-group.open .ro-depth-btn{opacity:1;transform:translateY(0) scaleY(1)}\n.ro-depth-group.open .ro-depth-btn:nth-child(1){transition-delay:.03s}\n.ro-depth-group.open .ro-depth-btn:nth-child(2){transition-delay:.06s}\n.ro-depth-group.open .ro-depth-btn:nth-child(3){transition-delay:.09s}\n.ro-depth-group.open .ro-depth-btn:nth-child(4){transition-delay:.12s}\n.ro-depth-group.open .ro-depth-btn:nth-child(5){transition-delay:.15s}\n.ro-depth-btn:hover{background:rgba(110,60,15,.32);border-color:rgba(180,110,40,.55);color:#E0B888}\n.ro-depth-btn:active{transform:scale(.84) !important}\n.ro-depth-btn.active{background:rgba(90,110,25,.32);border-color:rgba(160,190,60,.6);color:#E4C898;box-shadow:0 0 8px rgba(130,160,30,.28)}\n.ro-depth-group.open #ro-util-depth,#ro-util-depth.limited{background:rgba(110,60,15,.22);border-color:rgba(180,110,40,.45);color:#E0B888}\nbody.mode-roots .ro-depth-btn{border-color:rgba(140,90,28,.22);color:#7A5030}\nbody.mode-roots .ro-depth-btn:hover{background:rgba(130,80,20,.13);color:#4A2808}\nbody.mode-roots .ro-depth-btn.active{background:rgba(90,110,25,.2);border-color:rgba(110,140,40,.5);color:#3A4A18}\nbody.mode-roots .ro-depth-group.open #ro-util-depth,body.mode-roots #ro-util-depth.limited{background:rgba(130,80,20,.16);border-color:rgba(140,90,28,.4);color:#4A2808}\nbody.mode-mist .ro-depth-btn{border-color:#ddd;color:#333}\nbody.mode-mist .ro-depth-btn:hover{background:rgba(0,0,0,.06);border-color:#bbb}\nbody.mode-mist .ro-depth-btn.active{background:rgba(0,0,0,.08);border-color:#999;color:#000}\nbody.mode-mist .ro-depth-group.open #ro-util-depth,body.mode-mist #ro-util-depth.limited{background:rgba(0,0,0,.06);border-color:#bbb}\n#canvas[data-depth-limit="1"] .bc[data-depth="0"]>.bk{display:none!important}\n#canvas[data-depth-limit="2"] .bc[data-depth="1"]>.bk{display:none!important}\n#canvas[data-depth-limit="3"] .bc[data-depth="2"]>.bk{display:none!important}\n#canvas[data-depth-limit="4"] .bc[data-depth="3"]>.bk{display:none!important}\n/* Canvas */\n#canvas{max-width:680px;margin:0 auto;padding:64px 16px 64px}\n/* Cards */\n.bw{margin-bottom:5px;position:relative}\n.bc{border-radius:9px;border:1.5px solid;position:relative;user-select:text;-webkit-user-select:text;cursor:pointer;transition:background .25s,border-color .25s,color .25s}\n.bh{display:flex;align-items:flex-start;padding:10px 11px 10px 11px;gap:5px}\n.tg{flex-shrink:0;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.15);border-radius:6px;font-size:.85rem;opacity:.65;padding:3px 6px;line-height:1;min-width:24px;text-align:center;cursor:pointer;transition:transform .18s,opacity .14s,background .14s}\n.tg:hover{opacity:1;background:rgba(255,255,255,.18)}\n.tg.cl{transform:rotate(-90deg)}\nbody.mode-roots .tg{background:rgba(0,0,0,.08);border-color:rgba(0,0,0,.15)}\nbody.mode-mist .tg{background:rgba(0,0,0,.06);border-color:#ccc;color:#333}\n.tg-ph{width:24px;flex-shrink:0}\n.bk.hi{display:none}\n.bt{flex:1;line-height:1.3;outline:none;min-width:0;word-break:break-word}\n.bt.d0{font-family:var(--f-display);font-weight:800;font-size:1.04em;letter-spacing:-.01em}\n.bt.d1{font-family:var(--f-body);font-weight:500;font-size:1em;letter-spacing:.004em}\n.bt.d2{font-family:var(--f-body);font-weight:400;font-size:.96em;font-style:italic}\n.bt.d3{font-family:var(--f-body);font-weight:300;font-size:.94em;letter-spacing:.01em}\n.bt.d4{font-family:var(--f-body);font-weight:300;font-size:.91em;font-style:italic;letter-spacing:.014em}\n.bn-wrap{position:relative}\n.bn{padding:4px 11px 0 33px;font-family:var(--f-body);font-size:.81em;line-height:1.55;opacity:.62;word-break:break-word;max-height:calc(1.55em * 4 + 4px);overflow:hidden;-webkit-mask-image:linear-gradient(to bottom,black 55%,transparent 100%);mask-image:linear-gradient(to bottom,black 55%,transparent 100%)}\n.bn-wrap.exp .bn{max-height:none;-webkit-mask-image:none;mask-image:none}\n.bn-tog{display:block;margin:2px 11px 0 33px;padding:0;background:none;border:none;cursor:pointer;font-family:var(--f-body);font-size:.72em;opacity:.5;color:inherit;letter-spacing:.02em;transition:opacity .14s}\n.bn-tog:hover{opacity:.85}\n.bn p{margin:0 0 .25em}.bn p:last-child{margin-bottom:0}\n.bn ul,.bn ol{margin:.1em 0 .25em;padding-left:1.4em}.bn li{margin-bottom:.1em}\n.bn strong{font-weight:700}.bn em{font-style:italic}\n.bp{height:9px}\n.bk{padding:0 7px 7px 15px;border-top:1px solid rgba(255,255,255,.05);margin-top:3px}\n.bki{padding-top:5px}\n/* Per-depth palette \u2014 LEAVES (default) */\n.bc.lv0{background:#253510;border-color:#3A5020;color:#B0C888}\n.bc.lv1{background:#2E4418;border-color:#4C6630;color:#C4D898}\n.bc.lv2{background:#3A5422;border-color:#5C7A44;color:#D4E4A8}\n.bc.lv3{background:#4A6830;border-color:#6E9258;color:#E2EEB8}\n.bc.lv4{background:#5A7A3C;border-color:#84A868;color:#F0F4CC}\n/* Per-depth palette \u2014 ROOTS */\nbody.mode-roots .bc.lv0{background:#E2D4B8;border-color:#C8B890;color:#6A5830}\nbody.mode-roots .bc.lv1{background:#D8C8A0;border-color:#BCAA78;color:#584828}\nbody.mode-roots .bc.lv2{background:#CCBA88;border-color:#B09A60;color:#483818}\nbody.mode-roots .bc.lv3{background:#C0AA70;border-color:#A08A50;color:#382808}\nbody.mode-roots .bc.lv4{background:#B49A58;border-color:#907840;color:#281800}\n/* MIST \u2014 flat, borderless, monochrome regardless of depth */\nbody.mode-mist .bc{background:transparent!important;border-color:transparent!important;border:none!important;box-shadow:none!important;color:#111!important}\nbody.mode-mist .tg-ph{display:none}\nbody.mode-mist .bk{border-top:none!important;padding-left:16px}\nbody.mode-mist .bt{cursor:default!important;font-family:var(--f-display)}\nbody.mode-mist .bt.d0{font-weight:800;font-size:1.1em;color:#111}\nbody.mode-mist .bt.d1{font-weight:700;font-size:1.0em}\nbody.mode-mist .bt.d2{font-weight:400;font-size:.97em;font-style:italic}\nbody.mode-mist .bt.d3{font-weight:400;font-size:.95em}\nbody.mode-mist .bt.d4{font-weight:300;font-size:.93em;font-style:italic}\nbody.mode-mist .bn{opacity:.7;padding-left:16px}\nbody.mode-mist .bn-tog{margin-left:16px}\nbody.mode-mist .bp{height:5px}\nbody.mode-mist .bh{padding-left:6px}\n/* Selected state \u2014 LEAVES */\n.bc.selected{filter:brightness(1.55) saturate(1.12);box-shadow:0 0 0 2.5px #C8A028,0 0 32px rgba(200,160,40,.50),inset 0 0 0 1px rgba(240,200,60,.15)!important;transform:scale(1.016);z-index:2}\n.bc.selected .bt{color:#FFFBE8!important;text-shadow:0 1px 4px rgba(0,0,0,.55);font-weight:700!important}\n.bc.selected .bn{color:#F0EDD8!important;opacity:1!important}\n.bc.selected .tg{opacity:.9!important}\n/* Selected state \u2014 ROOTS */\nbody.mode-roots .bc.selected{filter:brightness(1.35) saturate(1.08);box-shadow:0 0 0 2.5px #7A5010,0 0 22px rgba(100,60,10,.35)!important}\nbody.mode-roots .bc.selected .bt{color:#0E0800!important;text-shadow:none;font-weight:700!important}\nbody.mode-roots .bc.selected .bn{color:#1A0E04!important;opacity:1!important}\n/* Selected state \u2014 MIST */\nbody.mode-mist .bc.selected{background:#F2E8C9!important;border:none!important;box-shadow:0 2px 12px rgba(0,0,0,.10)!important;filter:none!important;transform:none!important}\nbody.mode-mist .bc.selected .bt{color:#2B2B2B!important;font-weight:700!important}\nbody.mode-mist .bc.selected .bn{color:#2B2B2B!important;opacity:.75!important}\n.bt,.bn,.bn p{unicode-bidi:plaintext;direction:auto;text-align:start}\n`,
-            script = `(function(){\nvar canvas=document.getElementById("canvas");\nfunction setExpanded(card,expanded){var bk=card.querySelector(":scope>.bk");var tg=card.querySelector(":scope>.bh>.tg");if(bk)bk.classList.toggle("hi",!expanded);if(tg)tg.classList.toggle("cl",!expanded);}\nfunction setNoteExpanded(card,expanded){var wrap=card.querySelector(":scope>.bn-wrap");if(!wrap)return;wrap.classList.toggle("exp",expanded);var tog=wrap.querySelector(":scope>.bn-tog");if(tog)tog.textContent=expanded?"\u25b2 less":"\u25be more";}\nfunction isRoot(card){return card.dataset.depth==="0";}\nfunction deselectCard(card){card.classList.remove("selected");setExpanded(card,isRoot(card));setNoteExpanded(card,false);}\nfunction selectCard(card){card.classList.add("selected");setExpanded(card,true);setNoteExpanded(card,true);}\nif(canvas){\ncanvas.addEventListener("click",function(e){\nif(e.target.closest(".tg")||e.target.closest(".bn-tog"))return;\nvar card=e.target.closest(".bc");if(!card)return;\nvar directBk=card.querySelector(":scope>.bk");if(directBk&&directBk.contains(e.target))return;\nvar current=canvas.querySelector(".bc.selected");\nif(card===current){deselectCard(card);return;}\nif(current){var isDescendant=current.contains(card);current.classList.remove("selected");setNoteExpanded(current,false);if(!isDescendant)setExpanded(current,isRoot(current));}\nselectCard(card);\n});\n}\nvar modeBtns=document.querySelectorAll(".ro-mode-btn");\nmodeBtns.forEach(function(btn){\nbtn.addEventListener("click",function(){\nvar m=btn.dataset.mode;\ndocument.body.classList.remove("mode-leaves","mode-roots","mode-mist");\ndocument.body.classList.add("mode-"+m);\nmodeBtns.forEach(function(b){b.classList.toggle("active",b.dataset.mode===m);});\n});\n});\n/* ── Navigation overlay ── */\n(function(){\nvar nav=document.getElementById("ro-nav");\nvar drawer=document.getElementById("ro-nav-drawer");\nvar navBtn=document.getElementById("ro-nav-btn");\nvar trigger=document.getElementById("ro-nav-trigger");\nvar list=document.getElementById("ro-nav-list");\nif(!nav||!drawer||!trigger||!list)return;\nfunction slideBtn(open){\nif(!navBtn)return;\nvar w=open?Math.min(drawer.offsetWidth||0.8*window.innerWidth,420):0;\nnavBtn.style.setProperty("--ronav-btn-x",w+"px");\n}\nfunction openNav(){\nnav.classList.add("open");\nslideBtn(true);\ntrigger.classList.add("active");\nbuildNav();\n}\nfunction closeNav(){\nnav.classList.remove("open");\nslideBtn(false);\ntrigger.classList.remove("active");\n}\nfunction scrollToCard(cardEl){\nif(!cardEl)return;\nvar hdr=document.getElementById("ro-banner");\nvar hdrH=hdr?hdr.getBoundingClientRect().height:44;\nvar rect=cardEl.getBoundingClientRect();\nvar mid=rect.top+rect.height/2;\nvar target=hdrH+(window.innerHeight-hdrH)/2;\nwindow.scrollBy({top:mid-target,behavior:"smooth"});\n}\nfunction buildNav(){\nlist.innerHTML="";\nvar roots=canvas?canvas.querySelectorAll(":scope>.bw>.bc"):[];\nif(!roots.length){var em=document.createElement("div");em.style.cssText="padding:16px;font-style:italic;opacity:.4;font-size:.85rem;";em.textContent="No cards.";list.appendChild(em);return;}\nvar sel=canvas?canvas.querySelector(".bc.selected"):null;\nroots.forEach(function(rootCard,ri){\nlist.appendChild(mkNavNode(rootCard,0,ri===roots.length-1,sel));\n});\n}\nfunction mkNavNode(card,depth,isLast,selCard){\nvar wrap=document.createElement("div");\nwrap.className=(depth>0?"ronav-child-wrap":"ronav-root-wrap")+(isLast?" ronav-last-child":"");\nvar row=document.createElement("div");\nrow.className="ronav-card"+(card===selCard?" sel":"");\nrow.style.paddingLeft=(36+11*depth)+"px";\nvar span=document.createElement("span");\nspan.className="ronav-card-text";\nvar bt=card.querySelector(":scope>.bh>.bt");\nspan.textContent=(depth>0?"\u00b7 ":"")+(bt?bt.textContent.trim()||"(untitled)":"(untitled)");\nrow.appendChild(span);\nrow.addEventListener("click",function(){\nvar bk=card.querySelector(":scope>.bk");\nif(bk&&bk.classList.contains("hi")){\nbk.classList.remove("hi");\nvar tg=card.querySelector(":scope>.bh>.tg");\nif(tg)tg.classList.remove("cl");\n}\nvar cur=canvas?canvas.querySelector(".bc.selected"):null;\nif(cur&&cur!==card){cur.classList.remove("selected");setNoteExpanded(cur,false);if(!cur.contains(card))setExpanded(cur,cur.dataset.depth==="0");}\n/* Expand all collapsed ancestors so the target card is visible */\nvar ancestor=card.parentElement;\nwhile(ancestor&&ancestor!==canvas){\nif(ancestor.classList.contains("bk")){\nancestor.classList.remove("hi");\nvar parentCard=ancestor.parentElement;\nif(parentCard&&parentCard.classList.contains("bc")){\nvar tg=parentCard.querySelector(":scope>.bh>.tg");\nif(tg)tg.classList.remove("cl");\n}\n}\nancestor=ancestor.parentElement;\n}\nselectCard(card);\ncloseNav();\nsetTimeout(function(){scrollToCard(card);},80);\n});\nwrap.appendChild(row);\nvar bk=card.querySelector(":scope>.bk");\nif(bk){\nvar kids=bk.querySelectorAll(":scope>.bki>.bw>.bc");\nif(kids.length){\nvar kw=document.createElement("div");\nkw.className="ronav-kids-wrap";\nkids.forEach(function(kid,ki){\nkw.appendChild(mkNavNode(kid,depth+1,ki===kids.length-1,selCard));\n});\nwrap.appendChild(kw);\n}\n}\nreturn wrap;\n}\ntrigger.addEventListener("click",function(e){\ne.stopPropagation();\nnav.classList.contains("open")?closeNav():openNav();\n});\nif(navBtn)navBtn.addEventListener("click",function(e){e.stopPropagation();closeNav();});\nnav.addEventListener("click",function(e){if(e.target===nav)closeNav();});\nwindow.addEventListener("resize",function(){if(nav.classList.contains("open"))slideBtn(true);},{passive:true});\n/* Swipe from left edge to open */\n(function(){\nvar EDGE=24,THRESH=60,sx=0,sy=0,tracking=false;\ndocument.addEventListener("touchstart",function(e){if(nav.classList.contains("open"))return;var t=e.touches[0];if(t.clientX>EDGE)return;sx=t.clientX;sy=t.clientY;tracking=true;},{passive:true});\ndocument.addEventListener("touchmove",function(e){if(!tracking)return;var t=e.touches[0];var dx=t.clientX-sx,dy=t.clientY-sy;if(Math.abs(dy)>Math.abs(dx)+12){tracking=false;return;}if(dx>THRESH){tracking=false;openNav();}},{passive:true});\ndocument.addEventListener("touchend",function(){tracking=false;});\ndocument.addEventListener("touchcancel",function(){tracking=false;});\n})();\n/* Swipe drawer left to close */\n(function(){\nvar sx=0,sy=0,dx=0,tracking=false;\ndrawer.addEventListener("touchstart",function(e){if(!nav.classList.contains("open"))return;var origin=e.target.closest("#ro-nav-title,#ro-nav-caption");if(!origin)return;var t=e.touches[0];sx=t.clientX;sy=t.clientY;dx=0;tracking=true;},{passive:true});\ndrawer.addEventListener("touchmove",function(e){if(!tracking)return;var t=e.touches[0];dx=t.clientX-sx;var dy=t.clientY-sy;if(Math.abs(dx)>Math.abs(dy)&&dx<0){e.preventDefault();var clamped=Math.max(dx,-drawer.offsetWidth);drawer.style.transition="none";drawer.style.transform="translateX("+clamped+"px)";}},{passive:false});\nfunction end(){if(!tracking)return;tracking=false;drawer.style.transition="";drawer.style.transform="";if(dx<-60)closeNav();}\ndrawer.addEventListener("touchend",end,{passive:true});\ndrawer.addEventListener("touchcancel",function(){tracking=false;drawer.style.transition="";drawer.style.transform="";});\n})();\n/* Drag tab handle to close */\n(function(){\nif(!navBtn)return;\nvar sx=0,dx=0,tracking=false;\nnavBtn.addEventListener("touchstart",function(e){if(!nav.classList.contains("open"))return;var t=e.touches[0];sx=t.clientX;dx=0;tracking=true;drawer.style.transition="none";navBtn.style.transition="none";},{passive:true});\nnavBtn.addEventListener("touchmove",function(e){if(!tracking)return;var t=e.touches[0];dx=Math.min(0,t.clientX-sx);e.preventDefault();var clamped=Math.max(dx,-drawer.offsetWidth);drawer.style.transform="translateX("+clamped+"px)";navBtn.style.transform="translateY(-50%) translateX(calc(var(--ronav-btn-x,0px) + "+clamped+"px))";},{passive:false});\nfunction end(){if(!tracking)return;tracking=false;drawer.style.transition="";drawer.style.transform="";navBtn.style.transition="";navBtn.style.transform="";if(dx<-60)closeNav();}\nnavBtn.addEventListener("touchend",end,{passive:true});\nnavBtn.addEventListener("touchcancel",function(){tracking=false;drawer.style.transition="";drawer.style.transform="";navBtn.style.transition="";navBtn.style.transform="";});\n})();\n})();\n/* ── Eye trigger + util rail ── */\n(function(){\nvar eye=document.getElementById("ro-eye-trigger");\nvar rail=document.getElementById("ro-util-rail");\nvar depthGroup=document.getElementById("ro-depth-group");\nif(!eye||!rail)return;\nfunction openRail(){rail.classList.add("open");eye.classList.add("active","pulse");setTimeout(function(){eye.classList.remove("pulse");},320);}\nfunction closeRail(){rail.classList.remove("open");eye.classList.remove("active");if(depthGroup)depthGroup.classList.remove("open");}\nfunction toggleRail(){rail.classList.contains("open")?closeRail():openRail();}\neye.addEventListener("touchend",function(e){e.preventDefault();e.stopPropagation();toggleRail();},{passive:false});\neye.addEventListener("click",function(e){e.stopPropagation();toggleRail();});\ndocument.addEventListener("click",function(e){if(!rail.contains(e.target)&&e.target!==eye&&!eye.contains(e.target))closeRail();});\ndocument.addEventListener("touchstart",function(e){if(!rail.contains(e.target)&&e.target!==eye&&!eye.contains(e.target))closeRail();},{passive:true});\n/* Collapse / Expand */\nvar colBtn=document.getElementById("ro-util-collapse");\nvar expBtn=document.getElementById("ro-util-expand");\nfunction setAllExpanded(cards,expanded){\ncards.forEach(function(card){\nvar bk=card.querySelector(":scope>.bk");\nvar tg=card.querySelector(":scope>.bh>.tg");\nif(bk){bk.classList.toggle("hi",!expanded);}\nif(tg){tg.classList.toggle("cl",!expanded);}\nif(bk){\nvar kids=bk.querySelectorAll(":scope>.bki>.bw>.bc");\nif(kids.length)setAllExpanded(Array.from(kids),expanded);\n}\n});\n}\nif(colBtn)colBtn.addEventListener("click",function(){\nvar roots=canvas?Array.from(canvas.querySelectorAll(":scope>.bw>.bc")):[];\nsetAllExpanded(roots,false);\ncloseRail();\n});\nif(expBtn)expBtn.addEventListener("click",function(){\nvar roots=canvas?Array.from(canvas.querySelectorAll(":scope>.bw>.bc")):[];\nsetAllExpanded(roots,true);\ncloseRail();\n});\n/* Depth */\nvar depthMainBtn=document.getElementById("ro-util-depth");\nif(depthGroup&&depthMainBtn){\ndepthMainBtn.addEventListener("click",function(e){e.stopPropagation();depthGroup.classList.toggle("open");});\n}\ndocument.querySelectorAll(".ro-depth-btn").forEach(function(b){\nb.addEventListener("click",function(){\nvar val=b.dataset.depthVal;\nvar cv=document.getElementById("canvas");\nif(cv){\nif(val==="inf")cv.removeAttribute("data-depth-limit");\nelse cv.setAttribute("data-depth-limit",val);\n}\nif(depthMainBtn)depthMainBtn.classList.toggle("limited",val!=="inf");\ndocument.querySelectorAll(".ro-depth-btn").forEach(function(x){x.classList.toggle("active",x.dataset.depthVal===val);});\ncloseRail();\n});\n});\n})();\n})();`,
+            css = `\n:root{\n  --f-display:'Palatino Linotype','Book Antiqua',Palatino,'Georgia',serif;\n  --f-body:Georgia,'Times New Roman',Times,serif;\n  --bg-page:#1E1008;\n  --bg-grad:radial-gradient(ellipse at 25% 0%,#2E1A0A 0%,#1A0E06 70%);\n  --hdr-bg:rgba(14,6,2,.96);\n  --hdr-border:#38200C;\n  --text-main:#E2D8C0;\n}\nbody.mode-roots{\n  --bg-page:#E2D8C0;\n  --bg-grad:radial-gradient(ellipse at 25% 0%,#EDE0C4 0%,#D4C8A0 70%);\n  --hdr-bg:rgba(226,216,192,.97);\n  --hdr-border:#B0A070;\n  --text-main:#1E1008;\n}\nbody.mode-mist{\n  --bg-page:#ffffff;\n  --bg-grad:#ffffff;\n  --hdr-bg:rgba(255,255,255,.97);\n  --hdr-border:#cccccc;\n  --text-main:#111111;\n}\n*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}\nhtml,body{min-height:100vh;background:var(--bg-grad);color:var(--text-main);font-family:var(--f-body);overflow-x:hidden;transition:background .25s,color .25s}\n/* Read-only banner + mode switcher */\n#ro-banner{position:fixed;top:0;left:0;right:0;z-index:200;background:var(--hdr-bg);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--hdr-border);padding:8px 16px;display:flex;align-items:center;gap:12px;font-family:var(--f-display);min-height:44px}\n#ro-banner-title{flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;white-space:nowrap;scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch}\n#ro-banner-title::-webkit-scrollbar{display:none}\n#ro-tree-name{font-family:var(--f-display);font-weight:700;font-size:.95rem;color:#C8C0A0;letter-spacing:-.01em;display:inline-block;white-space:nowrap}\nbody.mode-roots #ro-tree-name{color:#4A3010}\nbody.mode-mist #ro-tree-name{color:#222}\n#ro-modes{flex:0 0 auto;display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:3px 5px}\nbody.mode-roots #ro-modes{background:rgba(0,0,0,.07);border-color:rgba(0,0,0,.2)}\nbody.mode-mist #ro-modes{background:rgba(0,0,0,.05);border-color:#bbb}\n.ro-mode-btn{background:none;border:none;cursor:pointer;font-size:.85rem;padding:4px 7px;border-radius:14px;transition:background .15s,transform .15s;opacity:.5;line-height:1}\n.ro-mode-btn:hover{opacity:.8}\n.ro-mode-btn.active{opacity:1;transform:scale(1.08)}\nbody.mode-leaves .ro-mode-btn[data-mode="leaves"]{background:rgba(100,160,30,.35);color:#C8EE80}\nbody.mode-roots .ro-mode-btn[data-mode="roots"]{background:rgba(60,40,10,.25);color:#5A3A10}\nbody.mode-mist .ro-mode-btn[data-mode="mist"]{background:rgba(0,0,0,.12);color:#222}\n/* Footer */\n#ro-footer{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--hdr-bg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--hdr-border);padding:6px 16px;display:flex;align-items:center;gap:10px;min-height:38px;font-family:var(--f-display)}\n#ro-footer-badge{font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;color:#C8A060;opacity:.75;border:1px solid rgba(200,160,96,.3);border-radius:5px;padding:2px 7px}\nbody.mode-roots #ro-footer-badge{color:#7A5010;border-color:rgba(122,80,16,.3)}\nbody.mode-mist #ro-footer-badge{color:#888;border-color:rgba(0,0,0,.15)}\n#ro-footer-created{font-size:.7rem;color:inherit;opacity:.45;letter-spacing:.01em;white-space:nowrap}\n#ro-footer-logo-wrap{margin-left:auto;display:flex;align-items:center;gap:5px}\n#ro-footer-logo{height:22px;width:auto;object-fit:contain;opacity:.7;filter:drop-shadow(0 1px 3px rgba(0,0,0,.25))}\nbody.mode-roots #ro-footer-logo{opacity:.55}\nbody.mode-mist #ro-footer-logo{opacity:.5}\n/* Nav overlay */\n#ro-nav{position:fixed;inset:0;z-index:850;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:block;overflow:hidden;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .32s cubic-bezier(.4,0,.2,1),visibility 0s linear .32s}\n#ro-nav.open{opacity:1;visibility:visible;pointer-events:all;transition:opacity .32s cubic-bezier(.4,0,.2,1),visibility 0s linear 0s}\n#ro-nav-drawer{position:absolute;top:0;bottom:0;left:0;width:80%;max-width:420px;z-index:20;transform:translateX(-100%);transition:transform .32s cubic-bezier(.4,0,.2,1);pointer-events:none;overflow:visible}\n#ro-nav.open #ro-nav-drawer{transform:translateX(0);pointer-events:all}\n#ro-nav-box{position:absolute;top:0;bottom:0;left:0;right:0;overflow-y:auto;overflow-x:hidden;touch-action:pan-y;background:linear-gradient(to bottom,#1A1006 0%,#1A1006 72px,rgba(18,10,4,.92) 72px);border-right:1px solid rgba(184,144,32,.28);box-shadow:6px 0 32px rgba(0,0,0,.65);padding:28px 0 32px;display:flex;flex-direction:column}\nbody.mode-roots #ro-nav-box{background:linear-gradient(to bottom,#E8D8B4 0%,#E8D8B4 72px,rgba(232,216,180,.88) 72px);border-right-color:rgba(120,80,20,.3);box-shadow:6px 0 28px rgba(100,60,10,.35)}\nbody.mode-mist #ro-nav-box{background:linear-gradient(to bottom,#fff 0%,#fff 72px,rgba(255,255,255,.88) 72px);border-right-color:#ddd;box-shadow:6px 0 24px rgba(0,0,0,.18)}\n#ro-nav-title{padding:0 20px 14px;margin-bottom:4px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;gap:6px}\nbody.mode-roots #ro-nav-title{border-bottom-color:rgba(0,0,0,.1)}\nbody.mode-mist #ro-nav-title{border-bottom-color:#eee}\n#ro-nav-caption{font-family:var(--f-display);font-weight:800;font-size:.68rem;letter-spacing:.07em;text-transform:uppercase;color:#806050;opacity:.7}\nbody.mode-roots #ro-nav-caption{color:#7A4820}\nbody.mode-mist #ro-nav-caption{color:#999}\n#ro-nav-tree-label{font-family:var(--f-display);font-weight:700;font-size:.95rem;font-style:italic;color:#B8D880;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\nbody.mode-roots #ro-nav-tree-label{color:#5A3A10}\nbody.mode-mist #ro-nav-tree-label{color:#222}\n#ro-nav-list{padding:0 8px 8px;overflow-y:auto;overflow-x:auto;flex:1;-webkit-overflow-scrolling:touch}\n#ro-nav-btn{position:fixed;top:25%;left:0;transform:translateY(-50%) translateX(var(--ronav-btn-x,0px));z-index:870;writing-mode:vertical-rl;text-orientation:mixed;background:#1A1006;border:1px solid rgba(184,144,32,.35);border-left:none;border-radius:0 8px 8px 0;padding:14px 7px;cursor:pointer;font-family:var(--f-display);font-weight:700;font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;color:#C8A028;white-space:nowrap;line-height:1;box-shadow:4px 0 14px rgba(0,0,0,.5);transition:transform .32s cubic-bezier(.4,0,.2,1),background .14s,color .14s;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;opacity:0;pointer-events:none}\n#ro-nav.open #ro-nav-btn{opacity:1;pointer-events:all}\nbody.mode-roots #ro-nav-btn{background:#E8D8B4;border-color:rgba(120,80,20,.3);border-left:none;color:#8A5008;box-shadow:4px 0 12px rgba(100,60,10,.28)}\nbody.mode-mist #ro-nav-btn{background:#fff;border-color:#ddd;border-left:none;color:#8A6010;box-shadow:4px 0 10px rgba(0,0,0,.14)}\n/* Nav tree trigger button */\n#ro-nav-trigger{position:fixed;left:10px;top:66px;transform:translateY(-50%) !important;z-index:301;width:44px;height:44px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;touch-action:manipulation;padding:0;overflow:visible}\n#ro-nav-trigger svg{width:64px;height:64px;display:block;pointer-events:none}\n#ro-nav-trigger .ntt-frame{fill:rgba(30,16,6,.22);stroke:#C8A060;stroke-width:1.8;opacity:.92;transition:fill .2s,stroke .2s,opacity .2s,filter .2s;filter:drop-shadow(0 2px 6px rgba(0,0,0,.6))}\nbody.mode-roots #ro-nav-trigger .ntt-frame{fill:rgba(232,216,180,.22);stroke:#8A5020}\nbody.mode-mist #ro-nav-trigger .ntt-frame{fill:rgba(255,255,255,.22);stroke:#888}\n#ro-nav-trigger.active .ntt-frame{stroke:rgba(124,216,96,.9);filter:drop-shadow(0 0 7px rgba(124,216,96,.5)) drop-shadow(0 2px 6px rgba(0,0,0,.4))}\n#ro-nav-trigger .ntt-icon line:nth-child(-n+3){stroke-width:3.2}\n#ro-nav-trigger .ntt-icon line:nth-child(n+4):nth-child(-n+5){stroke-width:2.6}\n#ro-nav-trigger .ntt-icon line:nth-child(n+6):nth-child(-n+11){stroke-width:2}\n#ro-nav-trigger .ntt-icon line:nth-child(n+12){stroke-width:1.4}\n#ro-nav-trigger .ntt-icon{stroke:#C8A060;opacity:.92;transition:stroke .2s,filter .2s,opacity .2s}\nbody.mode-roots #ro-nav-trigger .ntt-icon{stroke:#5A3A10}\nbody.mode-mist #ro-nav-trigger .ntt-icon{stroke:#444}\n#ro-nav-trigger.active .ntt-icon{stroke:#A8F088;opacity:1;filter:drop-shadow(0 0 3px rgba(124,216,96,.75))}\n@keyframes nttROPulse{0%{transform:translateY(-50%) scale(1)}40%{transform:translateY(-50%) scale(1.18)}100%{transform:translateY(-50%) scale(1)}}\n#ro-nav-trigger.pulse{animation:nttROPulse .3s cubic-bezier(.34,1.4,.64,1) !important}\n/* Nav cards */\n.ronav-card{padding:7px 12px 7px 20px;font-family:var(--f-body);font-size:.82rem;color:#A0B870;cursor:pointer;border-radius:6px;transition:background .1s;display:flex;align-items:center;gap:6px;margin:1px 0;white-space:nowrap;min-width:0;line-height:1.35;position:relative}\n.ronav-card-text{display:inline-block;white-space:normal;word-break:break-word;line-height:1.35;vertical-align:middle}\n.ronav-card:hover{background:rgba(255,255,255,.07);color:#D0E8A0}\n.ronav-card.sel{background:rgba(70,100,20,.2);color:#D8ECA0;font-weight:600}\n.ronav-kids-wrap{position:relative;margin-left:20px;min-width:max-content}\n.ronav-kids-wrap::before{content:"";position:absolute;left:0;top:0;bottom:18px;width:1px;background:linear-gradient(to bottom,rgba(100,180,60,0) 0%,rgba(100,180,60,.18) 8%,rgba(100,180,60,.18) 88%,rgba(100,180,60,0) 100%);border-radius:1px;pointer-events:none}\n.ronav-kids-wrap>.ronav-last-child::before{display:none}\n.ronav-child-wrap{position:relative}\n.ronav-child-wrap>.ronav-card::before{content:"";position:absolute;left:-10px;top:50%;width:10px;height:1px;background:linear-gradient(to right,rgba(100,180,60,.18),rgba(100,180,60,.10));border-radius:1px;pointer-events:none}\n.ronav-root-wrap>.ronav-card::before{display:none}\nbody.mode-roots .ronav-kids-wrap::before{background:linear-gradient(to bottom,rgba(80,120,20,0) 0%,rgba(80,120,20,.14) 8%,rgba(80,120,20,.14) 88%,rgba(80,120,20,0) 100%)}\nbody.mode-roots .ronav-child-wrap>.ronav-card::before{background:linear-gradient(to right,rgba(80,120,20,.14),rgba(80,120,20,.08))}\nbody.mode-mist .ronav-kids-wrap::before{background:linear-gradient(to bottom,rgba(60,140,30,0) 0%,rgba(60,140,30,.12) 8%,rgba(60,140,30,.12) 88%,rgba(60,140,30,0) 100%)}\nbody.mode-mist .ronav-child-wrap>.ronav-card::before{background:linear-gradient(to right,rgba(60,140,30,.12),rgba(60,140,30,.06))}\nbody.mode-roots .ronav-card{color:#5A4420}\nbody.mode-roots .ronav-card:hover{background:rgba(0,0,0,.06);color:#3A2A10}\nbody.mode-roots .ronav-card.sel{background:rgba(0,0,0,.08);color:#2A1800}\nbody.mode-mist .ronav-card{color:#444}\nbody.mode-mist .ronav-card:hover{background:rgba(0,0,0,.05);color:#111}\nbody.mode-mist .ronav-card.sel{background:rgba(0,0,0,.06);color:#000}\n/* Eye trigger */\n#ro-eye-trigger{position:fixed;right:10px;top:66px;transform:translateY(-50%) !important;z-index:301;width:44px;height:44px;border-radius:50%;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;touch-action:manipulation;padding:0;overflow:visible}\n#ro-eye-trigger svg{width:64px;height:64px;display:block;pointer-events:none}\n#ro-eye-trigger .et-ring-bg{fill:none;stroke:var(--hdr-border);stroke-width:3;opacity:0;transition:stroke .2s,opacity .2s}\nbody.mode-mist #ro-eye-trigger .et-ring-bg{stroke:#bbb}\n#ro-eye-trigger.active .et-ring-bg{stroke:rgba(124,216,96,.55);opacity:1}\n#ro-eye-trigger .et-icon{stroke:#C8A060;stroke-width:4;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:.7;transition:stroke .2s,filter .2s,opacity .2s}\nbody.mode-roots #ro-eye-trigger .et-icon{stroke:#5A3A10}\nbody.mode-mist #ro-eye-trigger .et-icon{stroke:#444}\n#ro-eye-trigger .et-pupil{fill:#C8A060;stroke:none;opacity:.7;transition:fill .2s,filter .2s,opacity .2s}\nbody.mode-roots #ro-eye-trigger .et-pupil{fill:#5A3A10}\nbody.mode-mist #ro-eye-trigger .et-pupil{fill:#444}\n#ro-eye-trigger.active .et-icon{stroke:#A8F088;filter:drop-shadow(0 0 4px rgba(124,216,96,.85));opacity:1}\n#ro-eye-trigger.active .et-pupil{fill:#A8F088;filter:drop-shadow(0 0 4px rgba(124,216,96,.85));opacity:1}\n@keyframes roEtPulse{0%{transform:translateY(-50%) scale(1)}40%{transform:translateY(-50%) scale(1.18)}100%{transform:translateY(-50%) scale(1)}}\n#ro-eye-trigger.pulse{animation:roEtPulse .3s cubic-bezier(.34,1.4,.64,1) !important}\n/* Util rail */\n#ro-util-rail{position:fixed;top:90px;right:10px;z-index:299;width:46px;background:linear-gradient(175deg,rgba(38,22,10,.97) 0%,rgba(28,14,6,.98) 100%);border:1px solid rgba(120,70,25,.55);border-radius:12px;box-shadow:0 6px 22px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.4),inset 0 1px 0 rgba(180,110,50,.07);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:7px 0 8px;display:flex;flex-direction:column;align-items:center;gap:0;overflow:hidden;transform-origin:top center;opacity:0;visibility:hidden;transform:scaleY(.8) translateY(-8px);pointer-events:none;transition:opacity .16s ease,transform .22s cubic-bezier(.34,1.3,.64,1),visibility 0s linear .22s}\n#ro-util-rail.open{opacity:1;visibility:visible;transform:scaleY(1) translateY(0);pointer-events:all;transition:opacity .18s ease,transform .24s cubic-bezier(.34,1.3,.64,1)}\nbody.mode-roots #ro-util-rail{background:linear-gradient(175deg,rgba(225,205,172,.97) 0%,rgba(210,188,152,.98) 100%);border-color:rgba(140,90,30,.4);box-shadow:0 6px 20px rgba(70,35,8,.3),0 2px 8px rgba(0,0,0,.1),inset 0 1px 0 rgba(220,170,80,.1)}\nbody.mode-mist #ro-util-rail{background:rgba(255,255,255,.95);border:1px solid #ccc;box-shadow:0 4px 16px rgba(0,0,0,.14)}\n.ro-vine-stem{position:absolute;left:50%;transform:translateX(-50%);top:10px;bottom:10px;width:1.5px;background:linear-gradient(180deg,rgba(140,80,25,0) 0%,rgba(160,90,30,.5) 20%,rgba(170,100,35,.65) 50%,rgba(155,85,28,.45) 80%,rgba(120,65,18,0) 100%);border-radius:1px;pointer-events:none;animation:roStemGlow 3s ease-in-out infinite}\n@keyframes roStemGlow{0%,100%{opacity:.55}50%{opacity:.9}}\nbody.mode-mist #ro-util-rail .ro-vine-stem{display:none}\n.ro-util-btn{width:38px;height:34px;border-radius:9px;border:1px solid rgba(140,80,25,.32);background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:background .16s,border-color .16s,transform .14s;position:relative;z-index:2;margin:1.5px 0;flex-shrink:0;color:#C4956A}\n.ro-util-btn:hover{background:rgba(110,60,15,.32);border-color:rgba(180,110,40,.55);color:#E0B888}\n.ro-util-btn:active{transform:scale(.84) !important}\nbody.mode-roots .ro-util-btn{border-color:rgba(140,90,28,.28);color:#7A5030}\nbody.mode-roots .ro-util-btn:hover{background:rgba(130,80,20,.13);color:#4A2808}\nbody.mode-mist .ro-util-btn{border-color:#ddd;color:#333}\nbody.mode-mist .ro-util-btn:hover{background:rgba(0,0,0,.06);border-color:#bbb}\n.ro-util-icon{font-size:.84rem;line-height:1;pointer-events:none}\n.ro-util-label{font-family:var(--f-display);font-size:.4rem;letter-spacing:.05em;text-transform:uppercase;opacity:.72;line-height:1;pointer-events:none;transition:opacity .12s}\n.ro-util-btn:hover .ro-util-label{opacity:1}\n.ro-util-sep{width:24px;height:1px;background:rgba(140,80,25,.28);margin:3px 0;flex-shrink:0;border-radius:1px;position:relative;z-index:2}\nbody.mode-roots .ro-util-sep{background:rgba(150,95,30,.25)}\nbody.mode-mist .ro-util-sep{background:#ddd}\n/* Depth group */\n.ro-depth-group{width:100%;display:flex;flex-direction:column;align-items:center;position:relative;z-index:2}\n.ro-depth-actions{width:100%;display:flex;flex-direction:column;align-items:center;overflow:hidden;max-height:0;opacity:0;transition:max-height .35s cubic-bezier(.4,0,.2,1),opacity .22s ease;gap:0}\n.ro-depth-group.open .ro-depth-actions{max-height:240px;opacity:1}\n.ro-depth-btn{width:38px;height:30px;border-radius:8px;border:1px solid rgba(140,80,25,.28);background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:var(--f-display);font-weight:700;font-size:.78rem;color:#C4956A;margin:1.5px 0;flex-shrink:0;opacity:0;transform:translateY(-5px) scaleY(.7);transform-origin:top center;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:background .14s,border-color .14s,transform .14s,opacity .14s,color .14s}\n.ro-depth-group.open .ro-depth-btn{opacity:1;transform:translateY(0) scaleY(1)}\n.ro-depth-group.open .ro-depth-btn:nth-child(1){transition-delay:.03s}\n.ro-depth-group.open .ro-depth-btn:nth-child(2){transition-delay:.06s}\n.ro-depth-group.open .ro-depth-btn:nth-child(3){transition-delay:.09s}\n.ro-depth-group.open .ro-depth-btn:nth-child(4){transition-delay:.12s}\n.ro-depth-group.open .ro-depth-btn:nth-child(5){transition-delay:.15s}\n.ro-depth-btn:hover{background:rgba(110,60,15,.32);border-color:rgba(180,110,40,.55);color:#E0B888}\n.ro-depth-btn:active{transform:scale(.84) !important}\n.ro-depth-btn.active{background:rgba(90,110,25,.32);border-color:rgba(160,190,60,.6);color:#E4C898;box-shadow:0 0 8px rgba(130,160,30,.28)}\n.ro-depth-group.open #ro-util-depth,#ro-util-depth.limited{background:rgba(110,60,15,.22);border-color:rgba(180,110,40,.45);color:#E0B888}\nbody.mode-roots .ro-depth-btn{border-color:rgba(140,90,28,.22);color:#7A5030}\nbody.mode-roots .ro-depth-btn:hover{background:rgba(130,80,20,.13);color:#4A2808}\nbody.mode-roots .ro-depth-btn.active{background:rgba(90,110,25,.2);border-color:rgba(110,140,40,.5);color:#3A4A18}\nbody.mode-roots .ro-depth-group.open #ro-util-depth,body.mode-roots #ro-util-depth.limited{background:rgba(130,80,20,.16);border-color:rgba(140,90,28,.4);color:#4A2808}\nbody.mode-mist .ro-depth-btn{border-color:#ddd;color:#333}\nbody.mode-mist .ro-depth-btn:hover{background:rgba(0,0,0,.06);border-color:#bbb}\nbody.mode-mist .ro-depth-btn.active{background:rgba(0,0,0,.08);border-color:#999;color:#000}\nbody.mode-mist .ro-depth-group.open #ro-util-depth,body.mode-mist #ro-util-depth.limited{background:rgba(0,0,0,.06);border-color:#bbb}\n/* Canvas */\n#canvas{max-width:680px;margin:0 auto;padding:64px 16px 64px}\n/* Cards */\n.bw{margin-bottom:5px;position:relative}\n.bc{border-radius:9px;border:1.5px solid;position:relative;user-select:text;-webkit-user-select:text;cursor:pointer;transition:background .25s,border-color .25s,color .25s}\n.bh{display:flex;align-items:flex-start;padding:10px 11px 10px 11px;gap:5px}\n.tg{flex-shrink:0;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.15);border-radius:6px;font-size:.85rem;opacity:.65;padding:3px 6px;line-height:1;min-width:24px;text-align:center;cursor:pointer;transition:transform .18s,opacity .14s,background .14s}\n.tg:hover{opacity:1;background:rgba(255,255,255,.18)}\n.tg.cl{transform:rotate(-90deg)}\nbody.mode-roots .tg{background:rgba(0,0,0,.08);border-color:rgba(0,0,0,.15)}\nbody.mode-mist .tg{background:rgba(0,0,0,.06);border-color:#ccc;color:#333}\n.tg-ph{width:24px;flex-shrink:0}\n.bk.hi{display:none}\n.bt{flex:1;line-height:1.3;outline:none;min-width:0;word-break:break-word}\n.bt.d0{font-family:var(--f-display);font-weight:800;font-size:1.04em;letter-spacing:-.01em}\n.bt.d1{font-family:var(--f-body);font-weight:500;font-size:1em;letter-spacing:.004em}\n.bt.d2{font-family:var(--f-body);font-weight:400;font-size:.96em;font-style:italic}\n.bt.d3{font-family:var(--f-body);font-weight:300;font-size:.94em;letter-spacing:.01em}\n.bt.d4{font-family:var(--f-body);font-weight:300;font-size:.91em;font-style:italic;letter-spacing:.014em}\n.bn-wrap{position:relative}\n.bn{padding:4px 11px 0 33px;font-family:var(--f-body);font-size:.81em;line-height:1.55;opacity:.62;word-break:break-word;max-height:calc(1.55em * 4 + 4px);overflow:hidden;-webkit-mask-image:linear-gradient(to bottom,black 55%,transparent 100%);mask-image:linear-gradient(to bottom,black 55%,transparent 100%)}\n.bn-wrap.exp .bn{max-height:none;-webkit-mask-image:none;mask-image:none}\n.bn-tog{display:block;margin:2px 11px 0 33px;padding:0;background:none;border:none;cursor:pointer;font-family:var(--f-body);font-size:.72em;opacity:.5;color:inherit;letter-spacing:.02em;transition:opacity .14s}\n.bn-tog:hover{opacity:.85}\n.bn p{margin:0 0 .25em}.bn p:last-child{margin-bottom:0}\n.bn ul,.bn ol{margin:.1em 0 .25em;padding-left:1.4em}.bn li{margin-bottom:.1em}\n.bn strong{font-weight:700}.bn em{font-style:italic}\n.bp{height:9px}\n.bk{padding:0 7px 7px 15px;border-top:1px solid rgba(255,255,255,.05);margin-top:3px}\n.bki{padding-top:5px}\n/* Per-depth palette \u2014 LEAVES (default) */\n.bc.lv0{background:#253510;border-color:#3A5020;color:#B0C888}\n.bc.lv1{background:#2E4418;border-color:#4C6630;color:#C4D898}\n.bc.lv2{background:#3A5422;border-color:#5C7A44;color:#D4E4A8}\n.bc.lv3{background:#4A6830;border-color:#6E9258;color:#E2EEB8}\n.bc.lv4{background:#5A7A3C;border-color:#84A868;color:#F0F4CC}\n/* Per-depth palette \u2014 ROOTS */\nbody.mode-roots .bc.lv0{background:#E2D4B8;border-color:#C8B890;color:#6A5830}\nbody.mode-roots .bc.lv1{background:#D8C8A0;border-color:#BCAA78;color:#584828}\nbody.mode-roots .bc.lv2{background:#CCBA88;border-color:#B09A60;color:#483818}\nbody.mode-roots .bc.lv3{background:#C0AA70;border-color:#A08A50;color:#382808}\nbody.mode-roots .bc.lv4{background:#B49A58;border-color:#907840;color:#281800}\n/* MIST \u2014 flat, borderless, monochrome regardless of depth */\nbody.mode-mist .bc{background:transparent!important;border-color:transparent!important;border:none!important;box-shadow:none!important;color:#111!important}\nbody.mode-mist .tg-ph{display:none}\nbody.mode-mist .bk{border-top:none!important;padding-left:16px}\nbody.mode-mist .bt{cursor:default!important;font-family:var(--f-display)}\nbody.mode-mist .bt.d0{font-weight:800;font-size:1.1em;color:#111}\nbody.mode-mist .bt.d1{font-weight:700;font-size:1.0em}\nbody.mode-mist .bt.d2{font-weight:400;font-size:.97em;font-style:italic}\nbody.mode-mist .bt.d3{font-weight:400;font-size:.95em}\nbody.mode-mist .bt.d4{font-weight:300;font-size:.93em;font-style:italic}\nbody.mode-mist .bn{opacity:.7;padding-left:16px}\nbody.mode-mist .bn-tog{margin-left:16px}\nbody.mode-mist .bp{height:5px}\nbody.mode-mist .bh{padding-left:6px}\n/* Selected state \u2014 LEAVES */\n.bc.selected{filter:brightness(1.55) saturate(1.12);box-shadow:0 0 0 2.5px #C8A028,0 0 32px rgba(200,160,40,.50),inset 0 0 0 1px rgba(240,200,60,.15)!important;transform:scale(1.016);z-index:2}\n.bc.selected .bt{color:#FFFBE8!important;text-shadow:0 1px 4px rgba(0,0,0,.55);font-weight:700!important}\n.bc.selected .bn{color:#F0EDD8!important;opacity:1!important}\n.bc.selected .tg{opacity:.9!important}\n/* Selected state \u2014 ROOTS */\nbody.mode-roots .bc.selected{filter:brightness(1.35) saturate(1.08);box-shadow:0 0 0 2.5px #7A5010,0 0 22px rgba(100,60,10,.35)!important}\nbody.mode-roots .bc.selected .bt{color:#0E0800!important;text-shadow:none;font-weight:700!important}\nbody.mode-roots .bc.selected .bn{color:#1A0E04!important;opacity:1!important}\n/* Selected state \u2014 MIST */\nbody.mode-mist .bc.selected{background:#F2E8C9!important;border:none!important;box-shadow:0 2px 12px rgba(0,0,0,.10)!important;filter:none!important;transform:none!important}\nbody.mode-mist .bc.selected .bt{color:#2B2B2B!important;font-weight:700!important}\nbody.mode-mist .bc.selected .bn{color:#2B2B2B!important;opacity:.75!important}\n.bt,.bn,.bn p{unicode-bidi:plaintext;direction:auto;text-align:start}\n`,
+            script = `(function(){\nvar canvas=document.getElementById("canvas");\nfunction setExpanded(card,expanded){var bk=card.querySelector(":scope>.bk");var tg=card.querySelector(":scope>.bh>.tg");if(bk)bk.classList.toggle("hi",!expanded);if(tg)tg.classList.toggle("cl",!expanded);}\nfunction setNoteExpanded(card,expanded){var wrap=card.querySelector(":scope>.bn-wrap");if(!wrap)return;wrap.classList.toggle("exp",expanded);var tog=wrap.querySelector(":scope>.bn-tog");if(tog)tog.textContent=expanded?"\u25b2 less":"\u25be more";}\nfunction isRoot(card){return card.dataset.depth==="0";}\nfunction deselectCard(card){card.classList.remove("selected");setExpanded(card,isRoot(card));setNoteExpanded(card,false);}\nfunction selectCard(card){card.classList.add("selected");setExpanded(card,true);setNoteExpanded(card,true);}\nif(canvas){\ncanvas.addEventListener("click",function(e){\nif(e.target.closest(".tg")||e.target.closest(".bn-tog"))return;\nvar card=e.target.closest(".bc");if(!card)return;\nvar directBk=card.querySelector(":scope>.bk");if(directBk&&directBk.contains(e.target))return;\nvar current=canvas.querySelector(".bc.selected");\nif(card===current){deselectCard(card);return;}\nif(current){var isDescendant=current.contains(card);current.classList.remove("selected");setNoteExpanded(current,false);if(!isDescendant)setExpanded(current,isRoot(current));}\nselectCard(card);\n});\n}\nvar modeBtns=document.querySelectorAll(".ro-mode-btn");\nmodeBtns.forEach(function(btn){\nbtn.addEventListener("click",function(){\nvar m=btn.dataset.mode;\ndocument.body.classList.remove("mode-leaves","mode-roots","mode-mist");\ndocument.body.classList.add("mode-"+m);\nmodeBtns.forEach(function(b){b.classList.toggle("active",b.dataset.mode===m);});\n});\n});\n/* ── Navigation overlay ── */\n(function(){\nvar nav=document.getElementById("ro-nav");\nvar drawer=document.getElementById("ro-nav-drawer");\nvar navBtn=document.getElementById("ro-nav-btn");\nvar trigger=document.getElementById("ro-nav-trigger");\nvar list=document.getElementById("ro-nav-list");\nif(!nav||!drawer||!trigger||!list)return;\nfunction slideBtn(open){\nif(!navBtn)return;\nvar w=open?Math.min(drawer.offsetWidth||0.8*window.innerWidth,420):0;\nnavBtn.style.setProperty("--ronav-btn-x",w+"px");\n}\nfunction openNav(){\nnav.classList.add("open");\nslideBtn(true);\ntrigger.classList.add("active");\nbuildNav();\n}\nfunction closeNav(){\nnav.classList.remove("open");\nslideBtn(false);\ntrigger.classList.remove("active");\n}\nfunction scrollToCard(cardEl){\nif(!cardEl)return;\nvar hdr=document.getElementById("ro-banner");\nvar hdrH=hdr?hdr.getBoundingClientRect().height:44;\nvar rect=cardEl.getBoundingClientRect();\nvar mid=rect.top+rect.height/2;\nvar target=hdrH+(window.innerHeight-hdrH)/2;\nwindow.scrollBy({top:mid-target,behavior:"smooth"});\n}\nfunction buildNav(){\nlist.innerHTML="";\nvar roots=canvas?canvas.querySelectorAll(":scope>.bw>.bc"):[];\nif(!roots.length){var em=document.createElement("div");em.style.cssText="padding:16px;font-style:italic;opacity:.4;font-size:.85rem;";em.textContent="No cards.";list.appendChild(em);return;}\nvar sel=canvas?canvas.querySelector(".bc.selected"):null;\nroots.forEach(function(rootCard,ri){\nlist.appendChild(mkNavNode(rootCard,0,ri===roots.length-1,sel));\n});\n}\nfunction mkNavNode(card,depth,isLast,selCard){\nvar wrap=document.createElement("div");\nwrap.className=(depth>0?"ronav-child-wrap":"ronav-root-wrap")+(isLast?" ronav-last-child":"");\nvar row=document.createElement("div");\nrow.className="ronav-card"+(card===selCard?" sel":"");\nrow.style.paddingLeft=(36+11*depth)+"px";\nvar span=document.createElement("span");\nspan.className="ronav-card-text";\nvar bt=card.querySelector(":scope>.bh>.bt");\nspan.textContent=(depth>0?"\u00b7 ":"")+(bt?bt.textContent.trim()||"(untitled)":"(untitled)");\nrow.appendChild(span);\nrow.addEventListener("click",function(){\nvar bk=card.querySelector(":scope>.bk");\nif(bk&&bk.classList.contains("hi")){\nbk.classList.remove("hi");\nvar tg=card.querySelector(":scope>.bh>.tg");\nif(tg)tg.classList.remove("cl");\n}\nvar cur=canvas?canvas.querySelector(".bc.selected"):null;\nif(cur&&cur!==card){cur.classList.remove("selected");setNoteExpanded(cur,false);if(!cur.contains(card))setExpanded(cur,cur.dataset.depth==="0");}\n/* Expand all collapsed ancestors so the target card is visible */\nvar ancestor=card.parentElement;\nwhile(ancestor&&ancestor!==canvas){\nif(ancestor.classList.contains("bk")){\nancestor.classList.remove("hi");\nvar parentCard=ancestor.parentElement;\nif(parentCard&&parentCard.classList.contains("bc")){\nvar tg=parentCard.querySelector(":scope>.bh>.tg");\nif(tg)tg.classList.remove("cl");\n}\n}\nancestor=ancestor.parentElement;\n}\nselectCard(card);\ncloseNav();\nsetTimeout(function(){scrollToCard(card);},80);\n});\nwrap.appendChild(row);\nvar bk=card.querySelector(":scope>.bk");\nif(bk){\nvar kids=bk.querySelectorAll(":scope>.bki>.bw>.bc");\nif(kids.length){\nvar kw=document.createElement("div");\nkw.className="ronav-kids-wrap";\nkids.forEach(function(kid,ki){\nkw.appendChild(mkNavNode(kid,depth+1,ki===kids.length-1,selCard));\n});\nwrap.appendChild(kw);\n}\n}\nreturn wrap;\n}\ntrigger.addEventListener("click",function(e){\ne.stopPropagation();\nnav.classList.contains("open")?closeNav():openNav();\n});\nif(navBtn)navBtn.addEventListener("click",function(e){e.stopPropagation();closeNav();});\nnav.addEventListener("click",function(e){if(e.target===nav)closeNav();});\nwindow.addEventListener("resize",function(){if(nav.classList.contains("open"))slideBtn(true);},{passive:true});\n/* Swipe from left edge to open */\n(function(){\nvar EDGE=24,THRESH=60,sx=0,sy=0,tracking=false;\ndocument.addEventListener("touchstart",function(e){if(nav.classList.contains("open"))return;var t=e.touches[0];if(t.clientX>EDGE)return;sx=t.clientX;sy=t.clientY;tracking=true;},{passive:true});\ndocument.addEventListener("touchmove",function(e){if(!tracking)return;var t=e.touches[0];var dx=t.clientX-sx,dy=t.clientY-sy;if(Math.abs(dy)>Math.abs(dx)+12){tracking=false;return;}if(dx>THRESH){tracking=false;openNav();}},{passive:true});\ndocument.addEventListener("touchend",function(){tracking=false;});\ndocument.addEventListener("touchcancel",function(){tracking=false;});\n})();\n/* Swipe drawer left to close */\n(function(){\nvar sx=0,sy=0,dx=0,tracking=false;\ndrawer.addEventListener("touchstart",function(e){if(!nav.classList.contains("open"))return;var origin=e.target.closest("#ro-nav-title,#ro-nav-caption");if(!origin)return;var t=e.touches[0];sx=t.clientX;sy=t.clientY;dx=0;tracking=true;},{passive:true});\ndrawer.addEventListener("touchmove",function(e){if(!tracking)return;var t=e.touches[0];dx=t.clientX-sx;var dy=t.clientY-sy;if(Math.abs(dx)>Math.abs(dy)&&dx<0){e.preventDefault();var clamped=Math.max(dx,-drawer.offsetWidth);drawer.style.transition="none";drawer.style.transform="translateX("+clamped+"px)";}},{passive:false});\nfunction end(){if(!tracking)return;tracking=false;drawer.style.transition="";drawer.style.transform="";if(dx<-60)closeNav();}\ndrawer.addEventListener("touchend",end,{passive:true});\ndrawer.addEventListener("touchcancel",function(){tracking=false;drawer.style.transition="";drawer.style.transform="";});\n})();\n/* Drag tab handle to close */\n(function(){\nif(!navBtn)return;\nvar sx=0,dx=0,tracking=false;\nnavBtn.addEventListener("touchstart",function(e){if(!nav.classList.contains("open"))return;var t=e.touches[0];sx=t.clientX;dx=0;tracking=true;drawer.style.transition="none";navBtn.style.transition="none";},{passive:true});\nnavBtn.addEventListener("touchmove",function(e){if(!tracking)return;var t=e.touches[0];dx=Math.min(0,t.clientX-sx);e.preventDefault();var clamped=Math.max(dx,-drawer.offsetWidth);drawer.style.transform="translateX("+clamped+"px)";navBtn.style.transform="translateY(-50%) translateX(calc(var(--ronav-btn-x,0px) + "+clamped+"px))";},{passive:false});\nfunction end(){if(!tracking)return;tracking=false;drawer.style.transition="";drawer.style.transform="";navBtn.style.transition="";navBtn.style.transform="";if(dx<-60)closeNav();}\nnavBtn.addEventListener("touchend",end,{passive:true});\nnavBtn.addEventListener("touchcancel",function(){tracking=false;drawer.style.transition="";drawer.style.transform="";navBtn.style.transition="";navBtn.style.transform="";});\n})();\n})();\n/* ── Eye trigger + util rail ── */\n(function(){\nvar eye=document.getElementById("ro-eye-trigger");\nvar rail=document.getElementById("ro-util-rail");\nvar depthGroup=document.getElementById("ro-depth-group");\nif(!eye||!rail)return;\nfunction openRail(){rail.classList.add("open");eye.classList.add("active","pulse");setTimeout(function(){eye.classList.remove("pulse");},320);}\nfunction closeRail(){rail.classList.remove("open");eye.classList.remove("active");if(depthGroup)depthGroup.classList.remove("open");}\nfunction toggleRail(){rail.classList.contains("open")?closeRail():openRail();}\neye.addEventListener("touchend",function(e){e.preventDefault();e.stopPropagation();toggleRail();},{passive:false});\neye.addEventListener("click",function(e){e.stopPropagation();toggleRail();});\ndocument.addEventListener("click",function(e){if(!rail.contains(e.target)&&e.target!==eye&&!eye.contains(e.target))closeRail();});\ndocument.addEventListener("touchstart",function(e){if(!rail.contains(e.target)&&e.target!==eye&&!eye.contains(e.target))closeRail();},{passive:true});\n/* Collapse / Expand */\nvar colBtn=document.getElementById("ro-util-collapse");\nvar expBtn=document.getElementById("ro-util-expand");\nfunction setAllExpanded(cards,expanded){\ncards.forEach(function(card){\nvar bk=card.querySelector(":scope>.bk");\nvar tg=card.querySelector(":scope>.bh>.tg");\nif(bk){bk.classList.toggle("hi",!expanded);}\nif(tg){tg.classList.toggle("cl",!expanded);}\nif(bk){\nvar kids=bk.querySelectorAll(":scope>.bki>.bw>.bc");\nif(kids.length)setAllExpanded(Array.from(kids),expanded);\n}\n});\n}\nif(colBtn)colBtn.addEventListener("click",function(){\nvar roots=canvas?Array.from(canvas.querySelectorAll(":scope>.bw>.bc")):[];\nsetAllExpanded(roots,false);\ncloseRail();\n});\nif(expBtn)expBtn.addEventListener("click",function(){\nvar roots=canvas?Array.from(canvas.querySelectorAll(":scope>.bw>.bc")):[];\nsetAllExpanded(roots,true);\ncloseRail();\n});\n/* Depth */\nvar depthMainBtn=document.getElementById(\"ro-util-depth\");\nif(depthGroup&&depthMainBtn){\ndepthMainBtn.addEventListener(\"click\",function(e){e.stopPropagation();depthGroup.classList.toggle(\"open\");});\n}\nvar depthAutoCollapsed=[];\nfunction applyDepthLimit(val){\nvar cv=document.getElementById(\"canvas\");\ndepthAutoCollapsed.forEach(function(card){setExpanded(card,true);});\ndepthAutoCollapsed=[];\nif(val===\"inf\"){\nif(cv)cv.removeAttribute(\"data-depth-limit\");\n}else{\nif(cv)cv.setAttribute(\"data-depth-limit\",val);\nvar targetDepth=parseInt(val,10)-1;\nvar cards=cv?cv.querySelectorAll('.bc[data-depth="'+targetDepth+'"]'):[];\nArray.prototype.forEach.call(cards,function(card){\nvar bk=card.querySelector(\":scope>.bk\");\nif(bk&&!bk.classList.contains(\"hi\")){\nsetExpanded(card,false);\ndepthAutoCollapsed.push(card);\n}\n});\n}\nif(depthMainBtn)depthMainBtn.classList.toggle(\"limited\",val!==\"inf\");\ndocument.querySelectorAll(\".ro-depth-btn\").forEach(function(x){x.classList.toggle(\"active\",x.dataset.depthVal===val);});\n}\ndocument.querySelectorAll(\".ro-depth-btn\").forEach(function(b){\nb.addEventListener(\"click\",function(){\napplyDepthLimit(b.dataset.depthVal);\ncloseRail();\n});\n});\n})();\n})();`,
             u = `<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n<title>${d.replace(/</g, "&lt;").replace(/>/g, "&gt;")} — Arbor</title>\n<style>${css}</style>\n</head>\n<body class="mode-${t}">\n<div id="ro-banner">\n  <div id="ro-banner-title"><span id="ro-tree-name">${d.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</span></div>\n  ${modeBtns}\n</div>\n<div id="ro-footer">\n  <span id="ro-footer-badge">Read-only</span>\n  <span id="ro-footer-created">Created by Arbor</span>\n  <div id="ro-footer-logo-wrap">\n    ${logoSrc ? `<img id="ro-footer-logo" src="${logoSrc}" alt="Arbor">` : ``}\n  </div>\n</div>\n<button id="ro-nav-trigger" aria-label="Toggle Navigation">\n  <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">\n    <rect class="ntt-frame" x="8" y="8" width="48" height="48" rx="11" ry="11"/>\n    <g class="ntt-icon" stroke-linecap="round" stroke-linejoin="round" fill="none">\n      <line x1="32" y1="52" x2="32" y2="38"/>\n      <line x1="32" y1="50" x2="27" y2="53"/>\n      <line x1="32" y1="50" x2="37" y2="53"/>\n      <line x1="32" y1="40" x2="20" y2="30"/>\n      <line x1="32" y1="38" x2="44" y2="28"/>\n      <line x1="20" y1="30" x2="14" y2="22"/>\n      <line x1="20" y1="30" x2="26" y2="22"/>\n      <line x1="44" y1="28" x2="50" y2="20"/>\n      <line x1="44" y1="28" x2="38" y2="20"/>\n      <line x1="32" y1="38" x2="32" y2="26"/>\n      <line x1="32" y1="26" x2="26" y2="18"/>\n      <line x1="32" y1="26" x2="38" y2="18"/>\n      <line x1="14" y1="22" x2="11" y2="15"/>\n      <line x1="26" y1="22" x2="23" y2="15"/>\n      <line x1="50" y1="20" x2="53" y2="13"/>\n      <line x1="38" y1="20" x2="41" y2="13"/>\n      <line x1="32" y1="26" x2="32" y2="13"/>\n    </g>\n  </svg>\n</button>\n<div id="ro-nav">\n  <div id="ro-nav-drawer">\n    <div id="ro-nav-box">\n      <div id="ro-nav-title">\n        <div id="ro-nav-caption">Navigation</div>\n        <div id="ro-nav-tree-label">${d.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</div>\n      </div>\n      <div id="ro-nav-list"></div>\n    </div>\n  </div>\n  <button id="ro-nav-btn" aria-label="Close Navigation">Navigation</button>\n</div>\n<button id="ro-eye-trigger" title="Tree controls" aria-label="Tree controls">\n  <svg viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">\n    <circle class="et-ring-bg" cx="18" cy="18" r="16"/>\n    <path class="et-icon" d="M6 18 C9 12 14 9 18 9 C22 9 27 12 30 18 C27 24 22 27 18 27 C14 27 9 24 6 18 Z"/>\n    <circle class="et-pupil" cx="18" cy="18" r="3.6"/>\n  </svg>\n</button>\n<div id="ro-util-rail" title="Tree controls">\n  <div class="ro-vine-stem"></div>\n  <button class="ro-util-btn" id="ro-util-collapse" title="Collapse all branches">\n    <span class="ro-util-icon">▸</span>\n    <span class="ro-util-label">Collapse</span>\n  </button>\n  <button class="ro-util-btn" id="ro-util-expand" title="Expand all branches">\n    <span class="ro-util-icon">▾</span>\n    <span class="ro-util-label">Expand</span>\n  </button>\n  <div class="ro-util-sep"></div>\n  <div class="ro-depth-group" id="ro-depth-group">\n    <button class="ro-util-btn" id="ro-util-depth" title="Depth — choose how many levels are visible">\n      <span class="ro-util-icon">≡</span>\n      <span class="ro-util-label">Depth</span>\n    </button>\n    <div class="ro-depth-actions" id="ro-depth-actions">\n      <button class="ro-depth-btn" data-depth-val="1" title="Show 1 level">1</button>\n      <button class="ro-depth-btn" data-depth-val="2" title="Show 2 levels">2</button>\n      <button class="ro-depth-btn" data-depth-val="3" title="Show 3 levels">3</button>\n      <button class="ro-depth-btn" data-depth-val="4" title="Show 4 levels">4</button>\n      <button class="ro-depth-btn active" data-depth-val="inf" title="Show all levels">∞</button>\n    </div>\n  </div>\n</div>\n<div id="canvas">${cardHtml}</div>\n<script>${script}<\/script>\n</body>\n</html>`,
             p =
               (e.title || "card")
@@ -24072,10 +24180,7 @@
             if (!e || !e.innerText.trim()) return;
             const t = e.innerHTML,
               n = e.innerText.trim(),
-              o =
-                t && /<h[1-6]|<ol|<ul|<b>|<strong/i.test(t)
-                  ? parseRichTextToCards(t)
-                  : parseMarkdownToCards(n),
+              o = _harvestCardsFromContent(t, n),
               s =
                 o.length > 0
                   ? o
@@ -24271,6 +24376,33 @@
         _soilTextarea.addEventListener("blur", () => {
           _soilTextarea.setAttribute("inputmode", "none");
         }));
+      /* Shared "Harvest to branches" content resolver. Used by every harvest
+         entry point (Soil paste/selection, Sunshine note, Seedbed note) so
+         that markdown-formatted content splits into sibling cards the same
+         way regardless of where it was authored or how it's currently
+         stored (literal markdown text vs. already-rendered HTML). Without
+         this, content typed as raw markdown (e.g. **Bold** paragraph
+         headers with no real <b>/<h#> tags) would silently fail to split
+         when harvested from a plain HTML field, even though the same
+         markdown pasted into Soil - which renders it to real HTML at paste
+         time - splits correctly. */
+      function _harvestCardsFromContent(html, plainText) {
+        const hasRichStructure =
+          !!html && /<h[1-6]|<ol|<ul|<b>|<strong/i.test(html);
+        if (hasRichStructure) {
+          return parseRichTextToCards(html, { requireBoldForUl: false });
+        }
+        const looksLikeMd =
+          "function" === typeof _isMarkdown && _isMarkdown(plainText || "");
+        if (looksLikeMd) {
+          const converted = _markdownToHtml(plainText || "");
+          const cards = parseRichTextToCards(converted, {
+            requireBoldForUl: false,
+          });
+          if (cards.length) return cards;
+        }
+        return parseMarkdownToCards(plainText || "");
+      }
       let _tableNoticeTimer = null;
       function _showTableNotice() {
         const e = document.getElementById("soil-table-notice");
@@ -24778,10 +24910,7 @@
               s();
               const n = e(),
                 o = t(),
-                i =
-                  n && /<h[1-6]|<ol|<ul|<b>|<strong/i.test(n)
-                    ? parseRichTextToCards(n)
-                    : parseMarkdownToCards(o),
+                i = _harvestCardsFromContent(n, o),
                 a =
                   i.length > 0
                     ? i
@@ -25744,9 +25873,7 @@
         if (!t) return;
         const n = document.createElement("div");
         n.innerHTML = t;
-        const o = n.querySelector("h1,h2,h3,h4,h5,h6,ol,ul,b,strong")
-          ? parseRichTextToCards(t)
-          : parseMarkdownToCards(n.innerText || n.textContent || "");
+        const o = _harvestCardsFromContent(t, n.innerText || n.textContent || "");
         openSeedbedOverlay(
           o.length > 0 ? o : [{ title: "", note: t, kids: [] }],
           e,
@@ -28372,15 +28499,41 @@
         shineNode = e;
         const t = document.getElementById("shine-title"),
           n = document.getElementById("shine-note");
-        ((t.innerHTML = e.title || ""),
-          (n.innerHTML = e.note || ""),
-          _initNoteEditor(n),
-          _renderShineMeta(e),
-          document.getElementById("shine-ov").classList.add("open"),
-          setTimeout(() => {
-            e.title || t.focus();
-          }, 80),
-          pushOverlayState());
+        t.innerHTML = e.title || "";
+        /* Formatted mode assumes e.note is already real HTML and injects it
+           as-is. Some cards end up with their note only partly converted:
+           it may have plain <div>/<br> line-wrappers from a paste/import
+           path, while the actual bold and bullet markdown syntax inside was
+           never turned into real formatting tags, so raw markdown text
+           shows up under the "Formatted" tab even though that tab looks
+           selected. Checking for "any tag at all" isn't enough to catch
+           that hybrid case, since the div/br wrappers alone satisfy it.
+           Instead check for actual structural/formatting tags, same test
+           used to decide harvestability in _harvestCardsFromContent.
+           Convert once on open and persist the fix back onto the card. */
+        let noteHtml = e.note || "";
+        const hasRichStructure = /<h[1-6]|<ol|<ul|<b>|<strong/i.test(
+          noteHtml,
+        );
+        if (!hasRichStructure) {
+          const plain = _htmlToPlain(noteHtml).trim();
+          if (plain && "function" === typeof _isMarkdown && _isMarkdown(plain)) {
+            noteHtml = _markdownToHtml(plain);
+            e.note = noteHtml;
+            if (e._sbRef) e._sbRef.note = noteHtml;
+            if (typeof markUnsaved === "function") markUnsaved();
+          }
+        }
+        n.innerHTML = noteHtml;
+        _initNoteEditor(n);
+        _renderShineMeta(e);
+        "function" == typeof window._shineResetEditMode &&
+          window._shineResetEditMode();
+        document.getElementById("shine-ov").classList.add("open");
+        setTimeout(() => {
+          e.title || t.focus();
+        }, 80);
+        pushOverlayState();
       }
       /* Look up a saved-import (content-library) entry by its id. */
       function _libEntryById(id) {
@@ -28665,10 +28818,7 @@
         const html = node.note || "",
           plain = _htmlToPlain(html).trim();
         if (!plain) return;
-        const o =
-            html && /<h[1-6]|<ol|<ul|<b>|<strong/i.test(html)
-              ? parseRichTextToCards(html, { requireBoldForUl: false })
-              : parseMarkdownToCards(plain),
+        const o = _harvestCardsFromContent(html, plain),
           s =
             o.length > 0
               ? o
@@ -28676,6 +28826,8 @@
         openCardPreviewPopup(s, "Harvest to branches", { plantTarget: node });
       }
       function closeShine() {
+        "function" == typeof window._shineCommitPendingMdEdit &&
+          window._shineCommitPendingMdEdit();
         if (shineNode) {
           const e = document.getElementById("shine-title"),
             t = document.getElementById("shine-note");
@@ -28697,6 +28849,185 @@
         }
         document.getElementById("shine-ov").classList.remove("open");
       }
+      /* Sunshine Formatted/MD toggle. Mirrors the Soil rich-edit toggle
+         (see the IIFE that manages #soil-rich-edit-toggle) but simplified
+         since #shine-note has no separate "not yet in edit mode" state - it
+         is always directly editable, so this toggle is always visible and
+         just switches which editor is on screen. Always defaults back to
+         Formatted whenever a card is opened (see openShine). */
+      !(function () {
+        let _shineMode = "fmt";
+        const noteEl = () => document.getElementById("shine-note"),
+          mdTa = () => document.getElementById("shine-md-edit-ta"),
+          scrollWrap = () => document.getElementById("shine-note-scroll"),
+          fmtTab = () => document.getElementById("shine-edit-tab-fmt"),
+          mdTab = () => document.getElementById("shine-edit-tab-md");
+
+        /* Converts whatever is currently in the MD textarea back to real
+           HTML and writes it into both the note element and shineNode.note.
+           This is the only place that commits MD -> HTML, and it's called
+           on: switching back to Formatted, blurring the textarea, and
+           closeShine (via window._shineCommitPendingMdEdit) - so
+           shineNode.note is never left holding stale HTML or, worse, raw
+           markdown text (everything downstream - tree render, print,
+           Greenhouse, harvest - expects real HTML in node.note). */
+        function _commitMdToHtml() {
+          const n = noteEl(),
+            a = mdTa();
+          if (!n || !a) return;
+          n.innerHTML = _markdownToHtml(a.value);
+          shineNode && (shineNode.note = n.innerHTML);
+        }
+
+        function _autoGrowShineMdTa() {
+          const a = mdTa();
+          if (!a) return;
+          a.style.height = "auto";
+          a.style.height = Math.max(a.scrollHeight, 80) + "px";
+        }
+
+        function setMode(next) {
+          if (next === _shineMode) return;
+          const n = noteEl(),
+            a = mdTa(),
+            wrap = scrollWrap();
+          if (!n || !a || !wrap) return;
+          if ("md" === next) {
+            const fmtScrollTop = wrap.scrollTop;
+            const fmtContentHeight = n.scrollHeight;
+            const fmtSel = window.getSelection();
+            let charOffset = 0;
+            if (
+              fmtSel &&
+              fmtSel.rangeCount > 0 &&
+              n.contains(fmtSel.getRangeAt(0).startContainer)
+            ) {
+              const range = fmtSel.getRangeAt(0).cloneRange();
+              range.setStart(n, 0);
+              charOffset = range.toString().length;
+            }
+            a.value = _htmlToMarkdown(n.innerHTML);
+            wrap.classList.add("shine-md-editing");
+            _autoGrowShineMdTa();
+            /* Restore scroll position immediately (before focus), using the
+               ratio of where the reader was in the formatted content mapped
+               onto the new (auto-grown) textarea's total height. #shine-note
+               and #shine-md-edit-ta never scroll themselves - #shine-note-
+               scroll (wrap) is the only element that actually scrolls, so
+               that's what has to be restored, not a/n's own scrollTop
+               (always 0, since neither has internal overflow). */
+            const mdScrollRatio =
+              fmtContentHeight > 0
+                ? Math.min(fmtScrollTop / fmtContentHeight, 1)
+                : 0;
+            wrap.scrollTop = mdScrollRatio * wrap.scrollHeight;
+            setTimeout(() => {
+              /* preventScroll stops the browser from yanking the view back
+                 to wherever it thinks the focused textarea "should" be
+                 visible, which was overriding the scrollTop restore above. */
+              a.focus({ preventScroll: true });
+              try {
+                const mdText = a.value;
+                const fmtPlain = n.innerText || n.textContent || "";
+                const ratio =
+                  fmtPlain.length > 0
+                    ? Math.min(charOffset / fmtPlain.length, 1)
+                    : 0;
+                const mdPos = Math.round(ratio * mdText.length);
+                a.setSelectionRange(mdPos, mdPos);
+              } catch (err) {}
+              // Re-apply after focus in case the keyboard opening shifted it.
+              wrap.scrollTop = mdScrollRatio * wrap.scrollHeight;
+            }, 40);
+          } else {
+            const mdScrollTop = wrap.scrollTop;
+            const mdContentHeight = a.scrollHeight;
+            const mdPos = a.selectionStart || 0;
+            const mdText = a.value;
+            _commitMdToHtml();
+            a.style.height = "";
+            wrap.classList.remove("shine-md-editing");
+            const fmtScrollRatio =
+              mdContentHeight > 0
+                ? Math.min(mdScrollTop / mdContentHeight, 1)
+                : 0;
+            wrap.scrollTop = fmtScrollRatio * wrap.scrollHeight;
+            setTimeout(() => {
+              n.focus({ preventScroll: true });
+              try {
+                const mdLen = mdText.length;
+                const ratio = mdLen > 0 ? Math.min(mdPos / mdLen, 1) : 0;
+                const walker = document.createTreeWalker(
+                  n,
+                  NodeFilter.SHOW_TEXT,
+                  null,
+                  false,
+                );
+                let target = Math.round(
+                  ratio * (n.innerText || n.textContent || "").length,
+                );
+                let accumulated = 0;
+                let foundNode = null,
+                  foundOffset = 0;
+                let node;
+                while ((node = walker.nextNode())) {
+                  const len = node.textContent.length;
+                  if (accumulated + len >= target) {
+                    foundNode = node;
+                    foundOffset = Math.min(target - accumulated, len);
+                    break;
+                  }
+                  accumulated += len;
+                }
+                if (foundNode) {
+                  const range = document.createRange();
+                  range.setStart(foundNode, foundOffset);
+                  range.collapse(true);
+                  const sel = window.getSelection();
+                  sel.removeAllRanges();
+                  sel.addRange(range);
+                }
+              } catch (err) {}
+              // Re-apply after focus in case the keyboard closing shifted it.
+              wrap.scrollTop = fmtScrollRatio * wrap.scrollHeight;
+            }, 40);
+          }
+          _shineMode = next;
+          fmtTab() && fmtTab().classList.toggle("active", "fmt" === _shineMode);
+          mdTab() && mdTab().classList.toggle("active", "md" === _shineMode);
+        }
+
+        /* Called by openShine every time a card is opened - Formatted is
+           always the default, regardless of what mode a previously-open
+           card was left in. No conversion needed here: n.innerHTML was
+           just set directly from node.note (real HTML) by openShine. */
+        function resetToFormatted() {
+          _shineMode = "fmt";
+          const wrap = scrollWrap();
+          wrap && wrap.classList.remove("shine-md-editing");
+          fmtTab() && fmtTab().classList.add("active");
+          mdTab() && mdTab().classList.remove("active");
+        }
+
+        function commitIfPending() {
+          if ("md" === _shineMode) _commitMdToHtml();
+        }
+
+        window._shineResetEditMode = resetToFormatted;
+        window._shineCommitPendingMdEdit = commitIfPending;
+
+        const fmtBtn = fmtTab(),
+          mdBtn = mdTab(),
+          ta = mdTa();
+        fmtBtn && fmtBtn.addEventListener("click", () => setMode("fmt"));
+        mdBtn && mdBtn.addEventListener("click", () => setMode("md"));
+        ta &&
+          ta.addEventListener("input", _autoGrowShineMdTa);
+        ta &&
+          ta.addEventListener("blur", () => {
+            if ("md" === _shineMode) _commitMdToHtml();
+          });
+      })();
       /* Android's system "Paste" action (long-press selection toolbar) and
          Gboard's clipboard-tray paste can hand the page different text/plain
          data for the *same* clip — on some devices the system-Paste path's
@@ -31311,17 +31642,10 @@
                 let a;
                 const _isShineNote = t.id === "shine-note";
                 if (_isShineNote && "function" == typeof parseRichTextToCards) {
-                  const _looksLikeMd =
-                    "function" == typeof _isMarkdown && _isMarkdown(n);
-                  let e;
-                  if (
-                    _looksLikeMd &&
-                    "function" == typeof parseMarkdownToCards
-                  ) {
-                    e = parseMarkdownToCards(n);
-                  } else {
-                    e = parseRichTextToCards(i, { requireBoldForUl: false });
-                  }
+                  const e =
+                    "function" == typeof _harvestCardsFromContent
+                      ? _harvestCardsFromContent(i, n)
+                      : parseRichTextToCards(i, { requireBoldForUl: false });
                   a =
                     e.length > 0
                       ? e
