@@ -23973,9 +23973,20 @@
             if (_staClear) { _staClear.innerText = ""; _staClear.classList.add("empty"); }
           }, 0));
       }
+      /* A detached <div> is never rendered, so innerText silently degrades to
+         textContent and every block/<br> boundary is lost. Reconstruct the
+         breaks explicitly instead of relying on layout. */
       function _htmlToPlain(e) {
         const t = document.createElement("div");
-        return ((t.innerHTML = e), t.innerText || t.textContent || "");
+        t.innerHTML = e || "";
+        t.querySelectorAll("br").forEach((br) => br.replaceWith("\n"));
+        t.querySelectorAll(
+          "p,div,li,h1,h2,h3,h4,h5,h6,tr,blockquote,pre,section,article",
+        ).forEach((el) => el.append("\n"));
+        return (t.textContent || "")
+          .replace(/\u00a0/g, " ")
+          .replace(/\r/g, "")
+          .replace(/\n{3,}/g, "\n\n");
       }
       (document
         .getElementById("soil-jump-btn")
@@ -28189,37 +28200,68 @@
         }
         return y.kids;
       }
+      /* Strip leading bidi control marks that RTL editors/clipboards inject
+         ahead of markdown markers, and map Arabic-Indic / Persian digits to
+         ASCII so ordered lists written as "۱." are recognised. */
+      function _mdNormalizeLine(line) {
+        return line
+          .replace(/^[\u200e\u200f\u061c\ufeff]+/, "")
+          .replace(/[\u0660-\u0669]/g, (d) =>
+            String(d.charCodeAt(0) - 0x0660),
+          )
+          .replace(/[\u06f0-\u06f9]/g, (d) =>
+            String(d.charCodeAt(0) - 0x06f0),
+          );
+      }
       function parseMarkdownToCards(e) {
-        const t = e.split("\n").map((e) => e.replace(/\r/g, "")),
+        const t = e
+            .split("\n")
+            .map((e) => _mdNormalizeLine(e.replace(/\r/g, ""))),
           n = [];
         let o = null,
-          s = !1,
           i = [];
+        /* Lines that appear before any heading used to be prepended to the
+           FIRST heading's body. Emit them as their own untitled sibling
+           card instead, at the same level as the section that follows. */
+        const flushPreamble = (level) => {
+          i.length &&
+            (n.push({ level: level, title: "", bodyLines: i, _listItem: !1 }),
+            (i = []));
+        };
         for (let e = 0; e < t.length; e++) {
           const a = t[e],
-            l = a.match(/^(#{1,5}) (\S.*)/),
+            l = a.match(/^(#{1,6})[ \t]+(\S.*)/),
             r = a.match(/^(\d+)[.)]\s+(.*)/),
             d = l && l[2].trim().match(/^(\d+)[.)]\s/);
-          if (l && !d)
-            ((s = !0),
+          if (l && !d) {
+            const e = l[1].length;
+            (flushPreamble(e),
               o && n.push(o),
               (o = {
-                level: l[1].length,
+                level: e,
                 title: formatMdInline(l[2].trim()),
                 bodyLines: [],
                 _listItem: !1,
-              }),
-              i.length && ((o.bodyLines = [...i, ...o.bodyLines]), (i = [])));
-          else if (r || d) {
-            o && n.push(o);
-            const e = d ? l[2].trim().replace(/^\d+[.)]\s+/, "") : r[2].trim();
-            ((o = {
-              level: d ? l[1].length : n.length ? n[n.length - 1].level + 1 : 1,
-              title: formatMdInline(e),
+              }));
+          } else if (r || d) {
+            /* Consecutive list items are siblings. Previously each one took
+               prev.level + 1, so "1. 2. 3." nested into a staircase. */
+            const c = o || (n.length ? n[n.length - 1] : null),
+              e = d
+                ? l[1].length
+                : c
+                  ? c._listItem
+                    ? c.level
+                    : c.level + 1
+                  : 1;
+            (flushPreamble(e), o && n.push(o));
+            const t = d ? l[2].trim().replace(/^\d+[.)]\s+/, "") : r[2].trim();
+            o = {
+              level: e,
+              title: formatMdInline(t),
               bodyLines: [],
               _listItem: !0,
-            }),
-              i.length && ((o.bodyLines = [...i, ...o.bodyLines]), (i = [])));
+            };
           } else o ? o.bodyLines.push(a) : a.trim() && i.push(a);
         }
         if ((o && n.push(o), !n.length)) return [];
