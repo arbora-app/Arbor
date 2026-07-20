@@ -18855,6 +18855,11 @@
                 const e = t.getRangeAt(0);
                 ((n = e.startContainer), (o = e.startOffset));
               }
+              /* Node-anchored positions do not survive the cleanup below
+                 (it unwraps <font>/<span>, which replaces nodes). Keep a
+                 character offset as a backstop — none of the cleanup changes
+                 the text content, so the count stays valid. */
+              const _charOff = _ceCaretMeasure(e);
               const s = e.firstChild;
               /* Android native paste can inject a raw text node with \n
                  directly inside an existing <p> (second-paste-into-paragraph
@@ -18883,11 +18888,11 @@
                       _lastP = _p;
                     }
                     if (t && _lastP) {
-                      const _r = document.createRange();
-                      _r.setStart(_lastP, _lastP.childNodes.length);
-                      _r.collapse(true);
-                      t.removeAllRanges();
-                      t.addRange(_r);
+                      _ceCaretToBlockEnd(t, _lastP);
+                      /* This is the Android system-Paste path: the IME
+                         re-asserts its own selection after this turn, so hold
+                         the position across the next frames as well. */
+                      _cePinCaret(e, _ceCaretMeasure(e));
                     }
                     _splitDone = true;
                   }
@@ -18909,11 +18914,8 @@
                     lastP = p2;
                   }
                   if (t && lastP) {
-                    const r2 = document.createRange();
-                    r2.setStart(lastP, lastP.childNodes.length);
-                    r2.collapse(true);
-                    t.removeAllRanges();
-                    t.addRange(r2);
+                    _ceCaretToBlockEnd(t, lastP);
+                    _cePinCaret(e, _ceCaretMeasure(e));
                   }
                   return;
                 }
@@ -18925,13 +18927,28 @@
                   sib && "BR" === sib.nodeName && p.appendChild(sib),
                   t)
                 ) {
-                  const r = document.createRange();
-                  (r.selectNodeContents(p),
-                    r.collapse(!1),
-                    t.removeAllRanges(),
-                    t.addRange(r));
-                  n = t.getRangeAt(0).startContainer;
-                  o = t.getRangeAt(0).startOffset;
+                  /* Wrapping a stray text node in a <p> used to slam the
+                     caret to the end of that <p>. When a paste landed in the
+                     middle of the text node, insertNode split it and only
+                     the FIRST half is e.firstChild — so the caret jumped to
+                     just *before* the text that had been pasted. Re-derive
+                     the position from the character offset captured above;
+                     wrapping does not change the text, so it still holds. */
+                  if (_charOff != null) {
+                    try {
+                      const r = _ceCaretRangeFromChars(e, _charOff);
+                      t.removeAllRanges();
+                      t.addRange(r);
+                    } catch (_) {
+                      _ceCaretToBlockEnd(t, p);
+                    }
+                  } else {
+                    _ceCaretToBlockEnd(t, p);
+                  }
+                  if (t.rangeCount) {
+                    n = t.getRangeAt(0).startContainer;
+                    o = t.getRangeAt(0).startOffset;
+                  }
                 }
                 return;
               }
@@ -18968,15 +18985,40 @@
                     e.parentNode.replaceChild(t, e);
                   });
                 })(e),
-                t && n && n.nodeType === 3 && e.contains(n))
-              )
-                try {
-                  const e = document.createRange();
-                  (e.setStart(n, Math.min(o, n.length || 0)),
-                    e.collapse(!0),
-                    t.removeAllRanges(),
-                    t.addRange(e));
-                } catch (e) {}
+                t)
+              ) {
+                /* This used to require n.nodeType === 3, so it silently did
+                   nothing for every paste: the paste handlers anchor their
+                   caret to an *element* container (setStartAfter and
+                   selectNodeContents both do), never a text node. The caret
+                   was therefore left wherever the DOM cleanup had dropped it
+                   — usually the top of the editor. Handle both container
+                   kinds, and fall back to the character offset when the
+                   original container is gone. */
+                let _restored = false;
+                if (n && e.contains(n)) {
+                  try {
+                    const r = document.createRange();
+                    r.setStart(
+                      n,
+                      n.nodeType === 3
+                        ? Math.min(o, n.length || 0)
+                        : Math.min(o, n.childNodes.length),
+                    );
+                    r.collapse(!0);
+                    t.removeAllRanges();
+                    t.addRange(r);
+                    _restored = true;
+                  } catch (_) {}
+                }
+                if (!_restored && _charOff != null) {
+                  try {
+                    const r = _ceCaretRangeFromChars(e, _charOff);
+                    t.removeAllRanges();
+                    t.addRange(r);
+                  } catch (_) {}
+                }
+              }
             },
             { passive: !0 },
           ),
@@ -23992,6 +24034,10 @@
         sel.addRange(range);
       }
       function _insertPlainAtCursor(e, t) {
+        /* Strip the sentinel: the Soil box is a plain-text destination, and a
+           leading invisible \u0002 both corrupts the text and puts the caret
+           one character off from where the user sees the insertion point. */
+        t = _stripPasteSentinel(t);
         if (!t) return;
         e.focus();
         // Use execCommand for broadest compat; fall back to manual DOM insertion
@@ -24001,6 +24047,7 @@
             inserted = document.execCommand("insertText", false, t);
           }
         } catch(_) {}
+        let caretChars = null;
         if (!inserted) {
           const sel = window.getSelection();
           if (sel && sel.rangeCount > 0) {
@@ -24008,16 +24055,32 @@
             range.deleteContents();
             const tn = document.createTextNode(t);
             range.insertNode(tn);
-            range.setStartAfter(tn);
-            range.collapse(true);
-            sel.removeAllRanges();
-            sel.addRange(range);
+            try {
+              const probe = document.createRange();
+              probe.selectNodeContents(e);
+              probe.setEndAfter(tn);
+              caretChars = probe.toString().length;
+            } catch (_) {}
+            if (tn.parentNode) tn.parentNode.normalize();
+            if (caretChars != null) {
+              try {
+                const r = _ceCaretRangeFromChars(e, caretChars);
+                sel.removeAllRanges();
+                sel.addRange(r);
+              } catch (_) {}
+            }
           } else {
+            /* No selection to insert at — append, and put the caret at the
+               end of what we appended rather than leaving it undefined. */
             e.innerText += t;
+            caretChars = (e.innerText || "").length;
           }
+        } else {
+          caretChars = _ceCaretMeasure(e);
         }
         e.classList.toggle("empty", !e.innerText.trim());
         e.dispatchEvent(new Event("input", { bubbles: true }));
+        _cePinCaret(e, caretChars);
       }
       function _redirectTextareaPaste(e, t) {
         if ("write" === _soilInputMode) {
@@ -24362,7 +24425,45 @@
             "insertFromPasteAsQuotation" !== e.inputType
           )
             return;
-          if ("write" === _soilInputMode) return;
+          if ("write" === _soilInputMode) {
+            /* Android can deliver a paste as a bare "input" event with no
+               clipboardData, so it lands natively and our paste listener
+               never sees it. If it carried the copy sentinel, excise the
+               invisible character and put the caret back where the user
+               expects it — one position further left than the browser left
+               it, since we just removed a character before it. */
+            if (
+              _soilTextarea.textContent.indexOf(_PASTE_SENTINEL) === -1
+            )
+              return;
+            const before = _ceCaretMeasure(_soilTextarea);
+            let removedBeforeCaret = 0,
+              seen = 0;
+            const walker = document.createTreeWalker(
+              _soilTextarea,
+              NodeFilter.SHOW_TEXT,
+              null,
+              false,
+            );
+            const hits = [];
+            let node;
+            while ((node = walker.nextNode())) hits.push(node);
+            hits.forEach((tn) => {
+              const orig = tn.nodeValue;
+              const cleaned = orig.split(_PASTE_SENTINEL).join("");
+              if (cleaned !== orig && before != null) {
+                for (let i = 0; i < orig.length; i++) {
+                  if (orig[i] === _PASTE_SENTINEL && seen + i < before)
+                    removedBeforeCaret++;
+                }
+              }
+              seen += orig.length;
+              if (cleaned !== orig) tn.nodeValue = cleaned;
+            });
+            if (before != null)
+              _cePinCaret(_soilTextarea, Math.max(0, before - removedBeforeCaret));
+            return;
+          }
           const t = e.dataTransfer && e.dataTransfer.getData("text/html"),
             n = e.dataTransfer
               ? e.dataTransfer.getData("text/plain")
@@ -29044,6 +29145,55 @@
         mdBtn && mdBtn.addEventListener("click", () => setMode("md"));
         ta &&
           ta.addEventListener("input", _autoGrowShineMdTa);
+        /* The markdown tab is a real <textarea>, so it had no paste handler
+           at all and relied on native behaviour. Two things went wrong there:
+           text copied from a note arrived with our invisible STX sentinel as
+           its first character, and the auto-grow that runs on "input" resizes
+           the field before the browser has scrolled the new caret position
+           into view — so after a long paste the caret was off-screen, which
+           reads as "the cursor isn't at the end". Handle the insert
+           ourselves, place the selection explicitly, then grow and scroll. */
+        ta &&
+          ta.addEventListener("paste", (ev) => {
+            const cd = ev.clipboardData || window.clipboardData;
+            if (!cd) return;
+            let txt = cd.getData("text/plain") || "";
+            if (!txt) {
+              const html = cd.getData("text/html");
+              if (html) {
+                const tmp = document.createElement("div");
+                tmp.innerHTML = html;
+                txt = tmp.innerText || tmp.textContent || "";
+              }
+            }
+            if (!txt) return;
+            const hadSentinel = txt.charAt(0) === _PASTE_SENTINEL;
+            txt = _stripPasteSentinel(txt)
+              .replace(/\r\n/g, "\n")
+              .replace(/\r/g, "\n");
+            /* Same Android system-Paste double-spacing signature the
+               contenteditable path corrects. Skip it when the sentinel says
+               the blank lines are ours and therefore intentional. */
+            if (!hadSentinel) txt = _collapseAndroidPasteDoubleSpacing(txt);
+            if (!txt) return;
+            ev.preventDefault();
+            const start = ta.selectionStart,
+              end = ta.selectionEnd,
+              value = ta.value;
+            ta.value = value.slice(0, start) + txt + value.slice(end);
+            const caret = start + txt.length;
+            ta.setSelectionRange(caret, caret);
+            _autoGrowShineMdTa();
+            ta.dispatchEvent(new Event("input", { bubbles: true }));
+            /* Re-assert after the resize and after Gboard has had its turn. */
+            const reassert = () => {
+              if (document.activeElement !== ta) return;
+              if (ta.selectionStart !== caret || ta.selectionEnd !== caret)
+                ta.setSelectionRange(caret, caret);
+            };
+            requestAnimationFrame(reassert);
+            setTimeout(reassert, 60);
+          });
         ta &&
           ta.addEventListener("blur", () => {
             if ("md" === _shineMode) _commitMdToHtml();
@@ -29088,6 +29238,212 @@
           return trimmed.filter((_, i) => i % 2 === 0).join("\n");
         }
         return t;
+      }
+      /* ── Caret placement after a paste ──────────────────────────────────
+         Every paste path used to finish by building a Range anchored to
+         specific DOM nodes and handing it to the selection. That is fragile
+         here for three reasons:
+
+           1. We synchronously dispatch an "input" event straight afterwards.
+              The note-editor input listener re-shapes the DOM (wraps stray
+              text nodes in <p>, splits paragraphs containing \n, unwraps
+              <font>/<span> leftovers). Any of those invalidates a node
+              anchored Range and the caret silently drops to the top of the
+              editor.
+           2. That same listener only ever restored the caret when its saved
+              container was a *text* node. The ranges the paste handlers
+              produced were anchored to *element* containers
+              (setStartAfter / selectNodeContents+collapse both yield an
+              element container), so the restore branch never ran on paste.
+           3. On Android, both the OS long-press "Paste" action and Gboard's
+              clipboard tray re-assert their own selection after the event
+              loop turn that delivered the paste, clobbering whatever we set
+              synchronously.
+
+         A character offset survives all of that: DOM re-shaping moves nodes
+         around but does not change how many text characters precede the
+         caret. So we measure the caret as a character count, then re-derive
+         a Range from that count after each mutation phase. */
+      function _ceCaretChars(el, container, offset) {
+        if (!el || !container) return null;
+        try {
+          const r = document.createRange();
+          r.selectNodeContents(el);
+          r.setEnd(container, offset);
+          return r.toString().length;
+        } catch (_) {
+          return null;
+        }
+      }
+      /* Current collapsed caret, as a character count into `el`. */
+      function _ceCaretMeasure(el) {
+        const sel = window.getSelection();
+        if (!sel || !sel.rangeCount) return null;
+        const r = sel.getRangeAt(0);
+        if (!el.contains(r.endContainer) && r.endContainer !== el) return null;
+        return _ceCaretChars(el, r.endContainer, r.endOffset);
+      }
+      function _ceCaretRangeFromChars(el, chars) {
+        const r = document.createRange();
+        const walker = document.createTreeWalker(
+          el,
+          NodeFilter.SHOW_TEXT,
+          null,
+          false,
+        );
+        let seen = 0,
+          node;
+        while ((node = walker.nextNode())) {
+          const len = node.nodeValue.length;
+          /* ">=" (not ">") is deliberate: when the caret sits exactly at the
+             boundary we want the END of the text node we just pasted, not
+             the start of whatever follows it. That is what "sits after the
+             end character" means. */
+          if (seen + len >= chars) {
+            r.setStart(node, Math.max(0, Math.min(chars - seen, len)));
+            r.collapse(true);
+            return r;
+          }
+          seen += len;
+        }
+        /* No text at all (or offset past the end) — sit at the end of the
+           last block, but before a lone <br>, which is an empty-paragraph
+           placeholder rather than content. */
+        let tail = el;
+        while (
+          tail.lastElementChild &&
+          (tail.lastElementChild.nodeName === "P" ||
+            tail.lastElementChild.nodeName === "DIV" ||
+            tail.lastElementChild.nodeName === "LI")
+        )
+          tail = tail.lastElementChild;
+        if (
+          tail.childNodes.length &&
+          tail.lastChild.nodeName === "BR"
+        )
+          r.setStart(tail, tail.childNodes.length - 1);
+        else {
+          r.selectNodeContents(tail);
+          r.collapse(false);
+        }
+        r.collapse(true);
+        return r;
+      }
+      /* Place, and keep, the caret `chars` characters into `el`.
+         Re-asserted synchronously, on the next frame, and once more shortly
+         after, so the Android system-Paste and Gboard clipboard-tray paths
+         (which both re-assert their own selection late) end up agreeing with
+         us. Each deferred pass bails out if focus has moved somewhere the
+         user put it, so we never yank the caret back from a real
+         interaction. */
+      function _cePinCaret(el, chars) {
+        if (!el || chars == null) return;
+        const place = (allowFocus) => {
+          if (!el.isConnected) return;
+          const active = document.activeElement;
+          const ours = active === el || el.contains(active);
+          if (!ours) {
+            /* Only take focus if nothing else has claimed it. */
+            if (!allowFocus && active && active !== document.body) return;
+            try {
+              el.focus({ preventScroll: true });
+            } catch (_) {
+              el.focus();
+            }
+          }
+          const sel = window.getSelection();
+          if (!sel) return;
+          try {
+            const r = _ceCaretRangeFromChars(el, chars);
+            sel.removeAllRanges();
+            sel.addRange(r);
+            _ceScrollCaretIntoView(el, r);
+          } catch (_) {}
+        };
+        place(true);
+        requestAnimationFrame(() => place(false));
+        setTimeout(() => place(false), 60);
+      }
+      /* A long paste can push the caret below the fold (or under the virtual
+         keyboard). Nudge it back into view without disturbing the page. */
+      function _ceScrollCaretIntoView(el, range) {
+        try {
+          let rect = range.getBoundingClientRect();
+          if (!rect || (!rect.top && !rect.bottom && !rect.height)) {
+            /* A collapsed range can measure as zero. Fall back to the
+               enclosing element rather than inserting a probe node — the
+               probe would mutate the very DOM whose caret we are trying to
+               hold steady. */
+            const host =
+              range.startContainer.nodeType === 1
+                ? range.startContainer
+                : range.startContainer.parentElement;
+            rect = host && host.getBoundingClientRect ? host.getBoundingClientRect() : null;
+          }
+          if (!rect) return;
+          const pad = 24;
+          if (rect.bottom > window.innerHeight - pad || rect.top < pad) {
+            const host = el.closest("#shine-note-scroll,#soil-textarea") || el;
+            if (typeof host.scrollTop === "number" && host.scrollHeight > host.clientHeight) {
+              host.scrollTop += rect.bottom - (window.innerHeight - pad);
+            } else if (el.scrollIntoView) {
+              el.scrollIntoView({ block: "nearest" });
+            }
+          }
+        } catch (_) {}
+      }
+      /* Caret at the end of a block's real content. A trailing <br> is an
+         empty-line placeholder, not a character, so we sit before it —
+         otherwise the caret renders on the line *below* the text it should
+         be following. */
+      function _ceCaretToBlockEnd(sel, blk) {
+        if (!sel || !blk) return;
+        try {
+          const r = document.createRange();
+          if (
+            blk.childNodes.length &&
+            blk.lastChild.nodeName === "BR"
+          ) {
+            r.setStart(blk, blk.childNodes.length - 1);
+          } else if (blk.lastChild && blk.lastChild.nodeType === 3) {
+            r.setStart(blk.lastChild, blk.lastChild.nodeValue.length);
+          } else {
+            r.selectNodeContents(blk);
+            r.collapse(false);
+          }
+          r.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(r);
+        } catch (_) {}
+      }
+      /* Resolve the editable element that actually owns a clipboard event.
+         Chrome dispatches paste at the node containing the caret, which in a
+         populated note editor is the inner <p> (or a text node), NOT the
+         contenteditable host. Everything downstream — the "is this a note
+         editor" test, the paragraph-splitting, the caret measurement — was
+         reading e.target directly, so as soon as a card had any content the
+         handler either bailed out or measured against the wrong element.
+         The formatting toolbar in this file already resolves targets this
+         way; the paste path did not. */
+      function _pasteEditableHost(node) {
+        if (!node) return null;
+        const start = node.nodeType === 3 ? node.parentElement : node;
+        if (!start || !start.closest) return null;
+        return (
+          start.closest(
+            '#shine-note,#shine-title,.card-note-editor,.bn[contenteditable="true"],.bt[contenteditable="true"]',
+          ) || start.closest('[contenteditable="true"]')
+        );
+      }
+      /* Content copied out of a note carries a leading STX sentinel so the
+         paste side knows the blank lines in it are intentional. Strip it
+         everywhere text is consumed — left in place it is an invisible
+         character that both shifts the caret and corrupts titles. */
+      const _PASTE_SENTINEL = "\u0002";
+      function _stripPasteSentinel(t) {
+        return typeof t === "string"
+          ? t.replace(new RegExp("^" + _PASTE_SENTINEL + "+"), "")
+          : t;
       }
       function _plainPaste(e) {
         e.preventDefault();
@@ -29151,13 +29507,38 @@
         // double-spacing collapse. That heuristic is only needed for
         // raw text/plain; HTML-derived text already has correct structure.
         const _fromHtml = !!rawHtml;
+        /* Strip the sentinel here, once, for every destination. It used to be
+           removed only inside the multi-line note branch, so single-line
+           pastes (card titles, Sunshine title, one-line notes) kept an
+           invisible \u0002 as their first character — which is exactly the
+           kind of thing that makes the caret look like it is one place off. */
+        const _hasSentinel =
+          typeof t === "string" && t.charAt(0) === _PASTE_SENTINEL;
+        t = _stripPasteSentinel(t);
         if (!t) return;
-        const el = e.target;
+        const el = _pasteEditableHost(e.target) || e.target;
+        _insertPastedText(el, t, _fromHtml, _hasSentinel);
+      }
+      /* Shared insertion core. Reached from two directions:
+           • the "paste" event, via _plainPaste
+           • a "beforeinput" we intercept, via _syntheticPaste
+         Android's system Paste does not always fire a paste event at all, so
+         the second entry point is not a nicety — on that path it is the only
+         one that runs. */
+      function _insertPastedText(el, t, _fromHtml, _hasSentinel) {
+        if (!el || !t) return;
+        /* Multi-line destinations: anything that stores its note as block
+           HTML. ".bn" (Greenhouse / Seedbed note) was missing here, so
+           multi-line pastes landed there as one text node full of raw \n —
+           which the browser renders as spaces, and which left the caret
+           adrift because nothing owned the fix-up. Titles (".bt",
+           "shine-title") are deliberately excluded: they are single-line. */
         const isNoteEditor =
           el &&
           (el.id === "shine-note" ||
             el.id === "shine-title" ||
-            el.classList.contains("card-note-editor"));
+            el.classList.contains("card-note-editor") ||
+            el.classList.contains("bn"));
         if (isNoteEditor && el.id !== "shine-title" && t.indexOf("\n") !== -1) {
           // For note editors: insert newlines as paragraphs, one per line.
           // Built with plain Range/DOM methods instead of
@@ -29174,10 +29555,7 @@
           if (!sel || !sel.rangeCount) return;
           const range = sel.getRangeAt(0);
           if (!range.collapsed) range.deleteContents();
-          const _SEN = "\u0002";
-          const _hasSentinel = t.startsWith(_SEN);
-          const _tClean = _hasSentinel ? t.slice(_SEN.length) : t;
-          const _tNorm = _tClean.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+          const _tNorm = t.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
           // Skip collapse if text came from HTML (already structured correctly)
           // or if our sentinel is present (we wrote it, blank lines are intentional).
           const normalizedT = (_fromHtml || _hasSentinel)
@@ -29192,6 +29570,11 @@
           if (!host) host = el;
 
           const touched = [];
+          /* Where the caret must end up, expressed as (block, child index)
+             for now; it gets converted to a character offset below, after
+             the placeholder cleanup has settled the DOM. */
+          let caretBlock = null,
+            caretIndex = 0;
           if (host === el) {
             // Editor has no paragraph wrapper yet (still empty) — build fresh <p>s.
             const frag = document.createDocumentFragment();
@@ -29206,11 +29589,8 @@
             });
             range.insertNode(frag);
             if (lastP) {
-              const r = document.createRange();
-              r.selectNodeContents(lastP);
-              r.collapse(false);
-              sel.removeAllRanges();
-              sel.addRange(r);
+              caretBlock = lastP;
+              caretIndex = lastP.childNodes.length;
             }
           } else {
             // Split the host paragraph at the cursor into "before" / "after".
@@ -29237,52 +29617,173 @@
             lastNode.appendChild(afterFrag);
             if (!lastNode.firstChild) lastNode.appendChild(document.createElement("br"));
 
-            const r = document.createRange();
-            r.setStart(lastNode, Math.min(caretOffset, lastNode.childNodes.length));
-            r.collapse(true);
-            sel.removeAllRanges();
-            sel.addRange(r);
+            caretBlock = lastNode;
+            caretIndex = caretOffset;
           }
 
           // Strip a now-redundant trailing <br> placeholder from any paragraph
-          // that ended up with real text — same cleanup as before.
+          // that ended up with real text. This runs BEFORE the caret is
+          // measured — previously it ran after, so removing the <br> shifted
+          // the child index the caret had already been pinned to.
           touched.forEach(function (blk) {
             if (blk.textContent.length > 0 && blk.lastChild && blk.lastChild.nodeName === "BR") {
               blk.removeChild(blk.lastChild);
             }
           });
 
+          /* Convert the anchor to a character offset and commit it, then let
+             the input listeners do their re-shaping and re-assert afterwards.
+             Character offsets are immune to that re-shaping; the node anchor
+             we had before was not. */
+          let caretChars = null;
+          if (caretBlock && caretBlock.isConnected) {
+            caretChars = _ceCaretChars(
+              el,
+              caretBlock,
+              Math.min(caretIndex, caretBlock.childNodes.length),
+            );
+          }
+          if (caretChars == null) {
+            /* Fallback: everything we inserted, measured from the paste point. */
+            caretChars = _ceCaretMeasure(el);
+          }
+          if (caretChars != null) {
+            try {
+              const r0 = _ceCaretRangeFromChars(el, caretChars);
+              sel.removeAllRanges();
+              sel.addRange(r0);
+            } catch (_) {}
+          }
+
           el.dispatchEvent(new Event("input", { bubbles: true }));
+          _cePinCaret(el, caretChars);
           return;
         }
+        /* Single-line destinations: card titles (".bt"), the Sunshine title,
+           and notes whose pasted text has no line breaks. */
         const n = window.getSelection();
         if (!n || !n.rangeCount) return;
+        const isTitle =
+          el && (el.id === "shine-title" || el.classList.contains("bt"));
+        /* A title is one line by definition. Leaving raw \n in it produced a
+           text node the browser collapses to whitespace, so the visible end
+           of the text and the real end of the node disagreed — the caret then
+           looked like it was sitting short of the last character. */
+        let text = isTitle ? t.replace(/[\r\n]+/g, " ").trim() : t;
+        if (!text) return;
         n.deleteFromDocument();
-        const node = document.createTextNode(t);
+        const node = document.createTextNode(text);
         n.getRangeAt(0).insertNode(node);
-        const r = document.createRange();
-        r.setStartAfter(node);
-        r.collapse(false);
-        n.removeAllRanges();
-        n.addRange(r);
-        e.target.dispatchEvent(new Event("input", { bubbles: !0 }));
-        requestAnimationFrame(() => {
-          const sel = window.getSelection();
-          if (!sel) return;
-          const el2 = e.target;
-          if (!el2 || !el2.isConnected) return;
-          const end = document.createRange();
-          if (node.isConnected) {
-            end.setStartAfter(node);
-            end.collapse(false);
-          } else {
-            end.selectNodeContents(el2);
-            end.collapse(false);
-          }
-          sel.removeAllRanges();
-          sel.addRange(end);
-        });
+        /* Merge the fresh node with its neighbours so the caret sits in a
+           single continuous run rather than at a seam the browser may later
+           collapse away on its own. Measure afterwards, by character count,
+           because normalize() invalidates `node`. */
+        let caretChars = null;
+        try {
+          const probe = document.createRange();
+          probe.selectNodeContents(el);
+          probe.setEndAfter(node);
+          caretChars = probe.toString().length;
+        } catch (_) {
+          caretChars = null;
+        }
+        if (node.parentNode) node.parentNode.normalize();
+        if (caretChars != null) {
+          try {
+            const r = _ceCaretRangeFromChars(el, caretChars);
+            n.removeAllRanges();
+            n.addRange(r);
+          } catch (_) {}
+        }
+        el.dispatchEvent(new Event("input", { bubbles: !0 }));
+        _cePinCaret(el, caretChars);
       }
+      /* ── Android system Paste arrives as plain typing ────────────────────
+         On-device tracing (Samsung Internet / Chrome on Android) shows the
+         long-press "Paste" action delivering NO paste event whatsoever. The
+         whole clipboard payload turns up as:
+
+             beforeinput  inputType="insertText"  data="line1\nline2\n\n…"
+
+         followed by a burst of input events. Because no paste event fires,
+         _plainPaste — and therefore every bit of the paragraph-building and
+         caret logic — never ran on that path. The browser inserted the text
+         itself and left the caret wherever it liked, which is the bug.
+
+         So we intercept beforeinput. A single insertText carrying a newline
+         is not something a keyboard can produce by typing, which makes it a
+         reliable signal for "this is really a paste". We cancel the native
+         insertion and route the text through the same code the real paste
+         event uses, so both paths produce identical structure and identical
+         caret placement. */
+      function _syntheticPaste(e) {
+        /* If the event cannot be cancelled we must not touch it, or the
+           native insertion happens anyway and we double up. */
+        if (!e.cancelable) return;
+        const it = e.inputType || "";
+        if (
+          it !== "insertText" &&
+          it !== "insertReplacementText" &&
+          it !== "insertFromPaste" &&
+          it !== "insertFromPasteAsQuotation"
+        )
+          return;
+        let data = e.data;
+        if (data == null && e.dataTransfer)
+          data = e.dataTransfer.getData("text/plain");
+        if (typeof data !== "string" || !data) return;
+        const hasSentinel = data.charAt(0) === _PASTE_SENTINEL;
+        const isPasteLike =
+          it !== "insertText" || data.indexOf("\n") !== -1 || hasSentinel;
+        /* Ordinary typing: leave it completely alone. */
+        if (!isPasteLike) return;
+
+        /* Guard against a device firing the same beforeinput more than once
+           for one gesture — we would otherwise insert the text twice. */
+        const now = Date.now();
+        if (
+          _syntheticPaste._last &&
+          _syntheticPaste._last.data === data &&
+          now - _syntheticPaste._last.at < 400
+        ) {
+          e.preventDefault();
+          return;
+        }
+
+        const target = e.target;
+        /* Real <textarea>/<input> (the Sunshine markdown tab): splice into
+           value and set the caret directly — no DOM structure involved. */
+        if (
+          target &&
+          (target.tagName === "TEXTAREA" || target.tagName === "INPUT")
+        ) {
+          if (!hasSentinel) return; // native caret handling is correct here
+          e.preventDefault();
+          _syntheticPaste._last = { data: data, at: now };
+          const clean = _stripPasteSentinel(data);
+          const start = target.selectionStart,
+            stop = target.selectionEnd;
+          target.value =
+            target.value.slice(0, start) + clean + target.value.slice(stop);
+          const caret = start + clean.length;
+          target.setSelectionRange(caret, caret);
+          target.dispatchEvent(new Event("input", { bubbles: true }));
+          return;
+        }
+
+        const el = _pasteEditableHost(target);
+        if (!el) return;
+        e.preventDefault();
+        _syntheticPaste._last = { data: data, at: now };
+        _insertPastedText(
+          el,
+          _stripPasteSentinel(data),
+          false,
+          hasSentinel,
+        );
+      }
+      document.addEventListener("beforeinput", _syntheticPaste, true);
+
       function buildExportPayload() {
         return JSON.stringify(
           {
@@ -29317,9 +29818,13 @@
         document.getElementById("canvas").addEventListener(
           "paste",
           function (e) {
-            const t = e.target;
-            (t.classList.contains("bt") ||
-              t.classList.contains("card-note-editor")) &&
+            /* Resolve the host: e.target is the inner <p>/text node once the
+               card has content, so the old classList test on e.target failed
+               for every non-empty card and let the native paste through. */
+            const t = _pasteEditableHost(e.target);
+            t &&
+              (t.classList.contains("bt") ||
+                t.classList.contains("card-note-editor")) &&
               _plainPaste(e);
           },
           { capture: !0 },
@@ -29327,18 +29832,21 @@
         document.getElementById("shine-ov").addEventListener(
           "paste",
           function (e) {
-            const t = e.target;
-            ("shine-title" !== t.id && "shine-note" !== t.id) || _plainPaste(e);
+            const t = _pasteEditableHost(e.target);
+            t &&
+              ("shine-title" === t.id || "shine-note" === t.id) &&
+              _plainPaste(e);
           },
           { capture: !0 },
         ),
         document.getElementById("gh-ov").addEventListener(
           "paste",
           function (e) {
-            const t = e.target;
-            (t.classList.contains("bt") ||
-              t.classList.contains("bn") ||
-              t.classList.contains("card-note-editor")) &&
+            const t = _pasteEditableHost(e.target);
+            t &&
+              (t.classList.contains("bt") ||
+                t.classList.contains("bn") ||
+                t.classList.contains("card-note-editor")) &&
               _plainPaste(e);
           },
           { capture: !0 },
