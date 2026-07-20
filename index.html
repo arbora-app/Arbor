@@ -28105,7 +28105,8 @@
               .slice(a)
               .map((e) => e.text)
               .join("")
-              .trim().length < 8
+              .replace(/^[\s:–—\-]+/, "")
+              .trim().length < 2
           )
             return null;
           const l = o
@@ -28196,7 +28197,8 @@
         let h = null,
           b = 1,
           v = 1,
-          lastTitled = null;
+          lastTitled = null,
+          bFromHeading = false;
         const partCounts = Object.create(null);
         // Recursively walks a <ul>/<ol>, turning each direct <li> into a card
         // at baseLevel+1, and any <ul>/<ol> nested directly inside that <li>
@@ -28221,10 +28223,28 @@
             }
           }
         }
+        // Emits a <ul>/<ol> as cards. If the list sits directly under a real
+        // heading, its items become that heading's children as usual (no
+        // extra wrapper — the heading already owns them). If there's no
+        // heading in play (flat/untitled content), the items are grouped
+        // inside a synthetic untitled container so the list doesn't nest
+        // under, or swallow, whatever plain paragraph happens to precede it.
+        function emitList(listEl) {
+          f(h);
+          h = null;
+          if (bFromHeading) {
+            walkListToCards(listEl, b);
+          } else {
+            u.push({ level: b, title: "", note: "" });
+            walkListToCards(listEl, b);
+          }
+          f(h);
+          h = null;
+        }
         for (const e of c) {
           const t = e.tagName.toLowerCase();
           if ("ol" === t) {
-            walkListToCards(e, b);
+            emitList(e);
             continue;
           }
           if ("table" === t) {
@@ -28245,7 +28265,7 @@
             const _lis = Array.from(e.querySelectorAll(":scope > li")),
               _first = _lis.find((li) => o(li));
             if (!requireBoldForUl || (_first && startsBold(_first))) {
-              walkListToCards(e, b);
+              emitList(e);
               continue;
             }
             const n = renderUlToHtml(e);
@@ -28266,6 +28286,7 @@
               (h = null),
               (b = i),
               (v = i),
+              (bFromHeading = true),
               (h = { level: i, title: n, note: "" }),
               (lastTitled = { title: n, level: i }));
           else if (s.test(n)) {
@@ -28306,7 +28327,7 @@
                 };
                 b = lastTitled.level;
                 v = lastTitled.level;
-              } else ((h = { level: 1, title: "", note: t }), (b = 1));
+              } else ((h = { level: 1, title: "", note: t }), (b = 1), (bFromHeading = false));
             }
           }
         }
