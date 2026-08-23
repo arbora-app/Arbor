@@ -24964,6 +24964,13 @@
             <button class="a-seg-btn" type="button" role="radio" data-idle-minutes="30">30 min</button>
           </div>
         </div>
+        <div class="settings-row">
+          <div class="settings-row-text">
+            <span class="settings-row-label">Keep tracking in background</span>
+            <span class="settings-row-desc">Count backgrounded time as active until the idle timeout above passes, instead of pausing the moment Arbor leaves the screen</span>
+          </div>
+          <button class="settings-toggle" id="settings-toggle-idle-from-background" type="button" role="switch" aria-checked="false"><span class="settings-toggle-knob"></span></button>
+        </div>
       </div>
     </div>
     <div id="gh-handle">
@@ -27296,6 +27303,16 @@
  * require a click). The idle timeout is user-configurable from Settings
  * (see settings/settings-popup, window.arborSettings.idleTimeoutMinutes).
  *
+ * By default, going hidden (backgrounded tab, locked phone, app switch)
+ * pauses the clock immediately — see _onVisibilityChange. If
+ * window.arborSettings.idleFromBackground is on, going hidden instead
+ * arms the same idle timeout used for on-screen inactivity: the clock
+ * keeps running through the backgrounded stretch, and only actually
+ * pauses if the user doesn't come back before the timeout elapses. This
+ * lets someone who steps away mid-thought (a phone call, a quick errand)
+ * have that time still count, without changing what "idle" means once
+ * they're back and genuinely not touching the app.
+ *
  * A "session" runs from the moment a forest becomes the open forest
  * (applyParsedForest, called by both initial load and switchForest) until
  * it stops being the open forest (switchForest moving away, or the tab
@@ -27401,8 +27418,25 @@
       const _ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "touchstart", "touchmove", "scroll", "wheel"];
 
       function _onVisibilityChange() {
-        if ("hidden" === document.visibilityState) _goIdle();
-        else if ("visible" === document.visibilityState) _goActive();
+        if ("hidden" === document.visibilityState) {
+          if (window.arborSettings && window.arborSettings.idleFromBackground) {
+            /* Treat going hidden like any other momentary pause: leave
+               the active stretch running (don't fold/reset activeSince)
+               and just (re)arm the same idle timer _goActive uses, so
+               the clock keeps counting through the backgrounded stretch
+               until either the user returns (this same timer just gets
+               cleared by the next _goActive, same as normal) or the idle
+               timeout genuinely elapses while still hidden. Only takes
+               effect if a session is actually running. */
+            _timeTrackState.forestId &&
+              (clearTimeout(_timeTrackState.idleTimer),
+                (_timeTrackState.idleTimer = setTimeout(_goIdle, _idleTimeoutMs())));
+          } else {
+            _goIdle();
+          }
+        } else if ("visible" === document.visibilityState) {
+          _goActive();
+        }
       }
 
       /* Starts timing a newly-opened forest. Called once per forest per
@@ -58557,7 +58591,8 @@
  *
  * DOM ELEMENTS (by id)
  *   hdr-kebab-btn, settings-close, settings-idle-timeout, settings-ov,
- *   settings-text-size, util-rail, util-rail-settings
+ *   settings-text-size, settings-toggle-idle-from-background, util-rail,
+ *   util-rail-settings
  *
  * SIDE EFFECTS
  *   - reads/writes localStorage
@@ -58585,6 +58620,17 @@
              blob as everything else, so it's one popup and one storage
              key for every preference. */
           idleTimeoutMinutes: 5,
+          /* When true, backgrounding the app (tab hidden, phone locked,
+             app switched away from) does NOT immediately pause the
+             tracker the way it normally does — instead the idle timeout
+             above starts counting down from the moment of invisibility,
+             same as it would from the last real input. If the user comes
+             back before that timeout elapses, the whole backgrounded
+             stretch counts as active (the assumption being they're still
+             working, just glanced away); if they don't, it idles out
+             exactly like normal inactivity would. Off by default so the
+             tracker's behavior doesn't change for existing users. */
+          idleFromBackground: false,
         };
 
         function loadSettings() {
@@ -58707,6 +58753,7 @@
           { id: "settings-toggle-confirm-delete", key: "confirmDelete" },
           { id: "settings-toggle-compact", key: "compactCards" },
           { id: "settings-toggle-colorize-tags", key: "colorizeTags", onChange: repaintTagColors },
+          { id: "settings-toggle-idle-from-background", key: "idleFromBackground" },
         ];
 
         function syncToggleEl(el, on) {
