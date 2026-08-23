@@ -27325,7 +27325,7 @@
  *   window.arborTimeTracking.sessionElapsedMs, _refreshHdrTimer
  *
  * DECLARES (state bindings, globally reachable)
- *   _timeTrackState
+ *   _timeTrackState, MIN_LOGGED_SESSION_MS
  *
  * CONSUMES (declared in other modules)
  *   _openForest, _readForestTimeLog, _storeForestTimeLog, window.arborSettings
@@ -27339,6 +27339,16 @@
  *   - schedules timers
  *   - writes to the header timer badge's text/classes
  */
+      /* Sessions shorter than this don't get their own row in the History
+         list — a string of brief glances would just clutter it — but the
+         time itself is still real and rolls into the running total shown
+         as "Total time tracked". Shared by endSession (write-time, so new
+         short sessions are never appended) and sheetForestSessionHistory
+         (read-time, so short sessions saved by an earlier build — before
+         this threshold existed — are filtered out of the list too,
+         without needing to rewrite any forest's saved JSON). */
+      const MIN_LOGGED_SESSION_MS = 5 * 60 * 1000;
+
       const _timeTrackState = {
         forestId: null,
         /* Wall-clock time (Date.now()) the current active stretch began,
@@ -27458,15 +27468,21 @@
           (_openForest && _openForest.id === forestId && _openForest.timeSpent) ||
           (await _readForestTimeLog(forestId)) ||
           { totalMs: 0, sessions: [] };
+        /* Sessions under the shared threshold don't get their own row in
+           the History list — see MIN_LOGGED_SESSION_MS — but the time
+           itself is real, so it still rolls into the running total. */
+        const priorSessions = Array.isArray(prior.sessions) ? prior.sessions : [];
+        const sessions =
+          ms >= MIN_LOGGED_SESSION_MS
+            ? priorSessions.concat([{ startedAt: Date.now() - ms, ms: ms }]).slice(-100)
+            : priorSessions;
         const log = {
           totalMs: (prior.totalMs || 0) + ms,
           lastSessionMs: ms,
           lastSessionEndedAt: Date.now(),
           /* Capped history of individual sessions — enough for a future
              per-session breakdown without the log growing unbounded. */
-          sessions: (Array.isArray(prior.sessions) ? prior.sessions : [])
-            .concat([{ startedAt: Date.now() - ms, ms: ms }])
-            .slice(-100),
+          sessions: sessions,
         };
 
         if (_openForest && _openForest.id === forestId) _openForest.timeSpent = log;
@@ -28360,9 +28376,9 @@
  *   sheetForestSessionHistory, _fmtSessionOpened
  *
  * CONSUMES (declared in other modules)
- *   _HAS_FSA, _openForest, _regEntry, closeSheet, duplicateForest,
- *   exportForest, openSheet, removeForest, renameForest, sheetBack,
- *   sheetItem, window.arborTimeTracking
+ *   _HAS_FSA, MIN_LOGGED_SESSION_MS, _openForest, _regEntry, closeSheet,
+ *   duplicateForest, exportForest, openSheet, removeForest, renameForest,
+ *   sheetBack, sheetItem, window.arborTimeTracking
  *
  * SIDE EFFECTS
  *   - registers DOM event listeners
@@ -28388,7 +28404,15 @@
           ? window.arborTimeTracking.snapshot(entry.id)
           : null;
         const timeLog = liveLog || entry.timeSpent;
-        const sessions = (timeLog && Array.isArray(timeLog.sessions)) ? timeLog.sessions : [];
+        /* Filtered here too, not just at write-time in endSession — a
+           forest file saved by an earlier build (before this threshold
+           existed) can still have short sessions sitting in its JSON, and
+           there's no migration step that rewrites old saves. Filtering on
+           read means those never show up in the list, without touching
+           the underlying data (which still counts toward totalMs). */
+        const sessions = (timeLog && Array.isArray(timeLog.sessions))
+          ? timeLog.sessions.filter((s) => (s && s.ms || 0) >= MIN_LOGGED_SESSION_MS)
+          : [];
 
         const note = document.createElement("div");
         ((note.className = "a-sheet-note"),
