@@ -22076,6 +22076,34 @@
         border-bottom-color: #ececec;
       }
 
+      /* The currently-running session's row — see PAUSED-EDIT NOTICE's
+         sibling comment in sheetForestSessionHistory for why this exists
+         (snapshot() never includes the in-progress stretch in sessions[],
+         so without this the list looks empty/stalled the entire time a
+         long session is still open). Pulled slightly forward of the
+         completed rows via background tint, and the pulsing dot is the
+         one visual cue that this row isn't final yet — its duration will
+         keep climbing on every re-render until the session actually ends. */
+      .a-sess-row-live {
+        background: rgba(154,200,88,.08);
+        border-radius: 6px;
+        border-bottom-color: transparent;
+      }
+
+      .a-sess-live-dot {
+        flex-shrink: 0;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #9AC858;
+        animation: a-sess-live-pulse 1.6s ease-in-out infinite;
+      }
+
+      @keyframes a-sess-live-pulse {
+        0%, 100% { opacity: .35; }
+        50% { opacity: 1; }
+      }
+
       .a-sess-date {
         flex: 1;
         min-width: 0;
@@ -26007,7 +26035,7 @@
           >
           <input
             id="vault-name-input"
-            value="Untitled Forest"
+            placeholder="Untitled Forest"
             maxlength="64"
             style="
               width: 100%;
@@ -27452,17 +27480,38 @@
       function _ensureOpenForest() {
         if (!_openForest) {
           const now = Date.now();
+          /* A forest restored from the crash cache keeps its existing id
+             (_lsCacheForestId, below), so it still has a registry entry
+             describing it — including the name the user gave it. Read
+             that entry back here, the same way _adoptForestIdentity
+             consults the cached entry when a file's own header has no
+             name of its own.
+             Without this the boot path re-entered a forest by id but
+             re-derived its name from nothing: _lastFileHandle is always
+             null this early (handles are recalled from IndexedDB
+             asynchronously, later), so the chain fell through to the
+             literal "Untitled Forest", and boot's _syncRegistryFromOpen
+             wrote that over the real name. fileName/linked were wiped by
+             the same write; both are display-only (mkForestRow's "not
+             saved to a file" label) and are restored for the same
+             reason. timeSpent is deliberately left alone — forest/time-
+             tracking owns it and reconciles it against IndexedDB. */
+          const _cachedEntry = _lsCacheForestId ? _regEntry(_lsCacheForestId) : null;
           _openForest = {
             id: _lsCacheForestId || mkForestId(),
             name:
+              (_cachedEntry && _cachedEntry.name) ||
               _nameFromFileName(_lastFileHandle && _lastFileHandle.name) ||
               "Untitled Forest",
-            createdAt: now,
+            createdAt: (_cachedEntry && _cachedEntry.createdAt) || now,
             lastModified: now,
             lastOpenedAt: now,
-            mode: _HAS_FSA ? "fs" : "idb",
-            fileName: (_lastFileHandle && _lastFileHandle.name) || null,
-            linked: !!_lastFileHandle,
+            mode: (_cachedEntry && _cachedEntry.mode) || (_HAS_FSA ? "fs" : "idb"),
+            fileName:
+              (_lastFileHandle && _lastFileHandle.name) ||
+              (_cachedEntry && _cachedEntry.fileName) ||
+              null,
+            linked: !!_lastFileHandle || !!(_cachedEntry && _cachedEntry.linked),
             /* Per-forest time totals — see forest/time-tracking, which
                owns the live session clock and only ever reaches in here
                to read/replace this block wholesale. { totalMs: number,
@@ -27861,7 +27910,23 @@
          open forest's in-memory identity (so buildForestMeta picks it up
          on the very next save) and to the IndexedDB fallback. Safe to
          call more than once for the same forest — a second call simply
-         finds nothing left running and persists the same totals again. */
+         finds nothing left running and persists the same totals again.
+
+         Ordering here is deliberate and load-bearing for the beforeunload
+         case (see the listener below): a tab close gives this function
+         exactly one synchronous turn to run in — the browser is free to
+         discard the page the instant that turn ends, including any
+         pending promise continuation, even one that was already about to
+         resolve. localStorage (_regPatch, via _syncRegistryEndSession
+         below) is written synchronously and unconditionally, before any
+         `await`, specifically so the registry — which is what the
+         Forests tab and History sheet actually read — can never be lost
+         to that race. The `await _readForestTimeLog` fallback and the
+         IndexedDB mirror (_storeForestTimeLog) both still happen, but
+         strictly after: they're a nice-to-have persistence layer for a
+         normal in-app session end, not something History depends on, and
+         losing them on a hard tab close is an acceptable trade next to
+         losing the session's own history row entirely. */
       async function endSession(forestId) {
         if (!forestId || _timeTrackState.forestId !== forestId) return;
         _rollActiveIntoSession();
@@ -27876,20 +27941,28 @@
 
         if (ms <= 0) return;
 
-        const prior =
-          (_openForest && _openForest.id === forestId && _openForest.timeSpent) ||
-          (await _readForestTimeLog(forestId)) ||
-          { totalMs: 0, sessions: [] };
+        /* Best synchronously-available prior total. _openForest.timeSpent
+           covers the overwhelming majority of real endSession calls (the
+           forest currently timed is, by construction, almost always the
+           one open in memory) — the IndexedDB read a few lines down only
+           ever has to backfill a total for the rarer case where that's
+           missing, and by then the registry write below has already
+           landed regardless. */
+        const priorSync =
+          (_openForest && _openForest.id === forestId && _openForest.timeSpent) || {
+            totalMs: 0,
+            sessions: [],
+          };
         /* Sessions under the shared threshold don't get their own row in
            the History list — see MIN_LOGGED_SESSION_MS — but the time
            itself is real, so it still rolls into the running total. */
-        const priorSessions = Array.isArray(prior.sessions) ? prior.sessions : [];
+        const priorSessions = Array.isArray(priorSync.sessions) ? priorSync.sessions : [];
         const sessions =
           ms >= MIN_LOGGED_SESSION_MS
             ? priorSessions.concat([{ startedAt: Date.now() - ms, ms: ms }]).slice(-100)
             : priorSessions;
         const log = {
-          totalMs: (prior.totalMs || 0) + ms,
+          totalMs: (priorSync.totalMs || 0) + ms,
           lastSessionMs: ms,
           lastSessionEndedAt: Date.now(),
           /* Capped history of individual sessions — enough for a future
@@ -27898,14 +27971,30 @@
         };
 
         if (_openForest && _openForest.id === forestId) _openForest.timeSpent = log;
-        try {
-          await _storeForestTimeLog(forestId, log);
-        } catch (e) {}
-        /* Mirror into the registry cache too, so the Forests tab reflects
-           the just-ended session's length even before the next explicit
-           save writes it into the file. */
+        /* The unconditional, synchronous write — see the doc comment
+           above for why this has to come before any `await` in here. */
         if ("function" == typeof _regPatch) _regPatch(forestId, { timeSpent: log });
         "function" == typeof renderForests && renderForests();
+
+        /* From here down is best-effort only: a normal in-app session
+           end (switching forests, opening a different one) has plenty of
+           time for these to finish, but a beforeunload call may never
+           get to run any of it, and that's fine — the line above already
+           persisted what History and the Forests tab actually read. */
+        try {
+          if (!(_openForest && _openForest.id === forestId && _openForest.timeSpent)) {
+            const stored = await _readForestTimeLog(forestId);
+            if (stored && (stored.totalMs || 0) > log.totalMs) {
+              /* Another device/tab's copy turned out to be ahead — extremely
+                 rare (this branch only runs when there was no in-memory
+                 total to begin with), but worth reconciling rather than
+                 silently keeping the smaller number. */
+              if ("function" == typeof _regPatch) _regPatch(forestId, { timeSpent: stored });
+              "function" == typeof renderForests && renderForests();
+            }
+          }
+          await _storeForestTimeLog(forestId, log);
+        } catch (e) {}
       }
 
       /* Returns the live total (banked sessionMs plus whatever stretch is
@@ -28378,11 +28467,43 @@
         (_forestNote(""), closeArborNav(), renderForests());
       }
 
+      /* Small, fast, deterministic string hash (djb2 variant) — used only
+         to derive a stable-ish forest id for files that predate
+         forestMeta.id (see below). Not cryptographic; collisions are
+         acceptable here since the worst case is two differently-named
+         legacy files merging into one registry entry, which the user can
+         already recover from via rename. */
+      function _hashStr(s) {
+        let h = 5381;
+        for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+        return (h >>> 0).toString(36);
+      }
+
       /* ─── Bringing a forest in from a file ─────────────────────────── */
       async function adoptForestFromFile(parsed, handle, fileName, opts) {
         opts = opts || {};
         const meta = parsed && parsed.forestMeta;
-        const id = (meta && meta.id) || mkForestId();
+        /* A file saved by this app always carries meta.id, and that's the
+           only truly stable identity there is — reuse it as-is.
+           A file with no forestMeta at all predates that schema. It has
+           no stable identity of its own, so without help here, every
+           single open of the same untouched file would mint a brand-new
+           random id (mkForestId()) and be treated as an unrelated forest:
+           no name ever carries over from a prior open (the fallback chain
+           in _adoptForestIdentity checks the *cached* registry entry for
+           this id, and a fresh random id was never cached before), no
+           session history accumulates, and the recent-forests list
+           quietly grows a fresh "Untitled Forest" row on every re-open.
+           A name derived from the file's own filename is stable across
+           opens of that same file (same name in, same id out), so it's
+           used as the identity anchor instead — the first save afterward
+           still stamps a real forestMeta.id, same as _ensureOpenForest
+           already does for the "no file at all" case above, so this only
+           ever matters for the file's opens prior to that first save. */
+        const legacyName = (fileName || (handle && handle.name) || "").trim();
+        const id =
+          (meta && meta.id) ||
+          (legacyName ? "fst-legacy-" + _hashStr(legacyName.toLowerCase()) : mkForestId());
         const fileModified = (meta && meta.lastModified) || 0;
 
         /* Re-importing a file for a forest already stored here: whichever
@@ -28536,6 +28657,14 @@
         _lastFileHandle = null;
         _migrateForestSchema();
         touchRecent(activeId);
+        /* Registry entry for the new forest has to exist before
+           startSession below — same ordering constraint as
+           applyParsedForest and the boot-time call in
+           state/forest-state. Without it, endSession's _regPatch and the
+           History sheet's _regEntry lookup find no entry to write/read,
+           and the launch screen's recent list falls back to "Untitled
+           Forest" for the row it does create. */
+        _syncRegistryFromOpen();
         /* Start timing the new forest right away — a freshly created
            forest is itself the result of user input, so there's no
            "waiting for the next visibilitychange" gap here. */
@@ -28959,6 +29088,7 @@
          internal re-renders (add/delete) so those actions don't collapse
          the UI the user is mid-way through. */
       let _sessHistUi = { forestId: null, adding: false, editingMode: false, editingSession: null };
+      let _sessHistLiveTimer = null;
 
       /* Writes an edited sessions[] array back to a forest's time log —
          the same three targets endSession's own write touches, so a
@@ -29019,6 +29149,21 @@
         if (_sessHistUi.forestId !== entry.id)
           _sessHistUi = { forestId: entry.id, adding: false, editingMode: false, editingSession: null };
 
+        /* Keeps the "In progress" row's duration climbing while this
+           sheet is open, rather than freezing at whatever it read on
+           open — same 60s cadence the header badge uses (_refreshHdrTimer
+           above), just scoped to re-rendering this one sheet instead of
+           the badge. Cleared the moment a different sheet frame takes
+           over, so it never re-renders content that's no longer on
+           screen. */
+        clearInterval(_sessHistLiveTimer);
+        _sessHistLiveTimer = setInterval(() => {
+          const top = _sheetStack[_sheetStack.length - 1];
+          top && "forestSessionHistory" === top.mode && top.ctx.forestId === entry.id
+            ? renderSheet()
+            : clearInterval(_sessHistLiveTimer);
+        }, 60000);
+
         const isCurrent = !!(_openForest && entry.id === _openForest.id);
         const liveLog = isCurrent && window.arborTimeTracking
           ? window.arborTimeTracking.snapshot(entry.id)
@@ -29034,13 +29179,33 @@
           ? timeLog.sessions.filter((s) => (s && s.ms || 0) >= MIN_LOGGED_SESSION_MS)
           : [];
 
+        /* The session in progress right now, if any, never appears in
+           sessions[] above — snapshot() only ever reports *completed*
+           stretches, and this one only becomes "completed" (with a real
+           startedAt/ms row) once the forest is switched away from or the
+           tab closes, via endSession. Without a live row here, a long
+           open session is fully invisible in History the entire time
+           it's running — totalMs quietly climbs in the background but
+           nothing in this list reflects it, which reads as "tracking
+           isn't working" even though it is. Surfaced separately from
+           `sessions` (not spliced in) since it has no stable startedAt/id
+           yet and needs to keep re-rendering as time passes. */
+        const liveMs =
+          isCurrent && window.arborTimeTracking
+            ? window.arborTimeTracking.sessionElapsedMs(entry.id)
+            : 0;
+        const livePaused =
+          isCurrent && window.arborTimeTracking && window.arborTimeTracking.isPaused(entry.id);
+        const showLiveRow = liveMs >= MIN_LOGGED_SESSION_MS;
+
         const note = document.createElement("div");
+        const totalCount = sessions.length + (showLiveRow ? 1 : 0);
         ((note.className = "a-sheet-note"),
           (note.textContent =
             (entry.name || "Untitled Forest") +
             " · " +
-            sessions.length +
-            (1 === sessions.length ? " session" : " sessions")),
+            totalCount +
+            (1 === totalCount ? " session" : " sessions")),
           body.appendChild(note));
 
         /* Editing an existing (manually-added) session reuses the same
@@ -29054,10 +29219,38 @@
         const list = document.createElement("div");
         list.className = "a-sess-list a-sess-list-full";
 
-        if (!sessions.length) {
+        if (showLiveRow) {
+          const row = document.createElement("div");
+          row.className = "a-sess-row a-sess-row-live";
+
+          const date = document.createElement("span");
+          ((date.className = "a-sess-date"),
+            (date.textContent = livePaused ? "In progress — paused" : "In progress"));
+          row.appendChild(date);
+
+          const dot = document.createElement("span");
+          ((dot.className = "a-sess-live-dot"),
+            livePaused && (dot.style.background = "#b08840"));
+          row.appendChild(dot);
+
+          const dur = document.createElement("span");
+          ((dur.className = "a-sess-dur"),
+            (dur.textContent = window.arborTimeTracking
+              ? window.arborTimeTracking.fmtDuration(liveMs)
+              : ""));
+          row.appendChild(dur);
+
+          list.appendChild(row);
+        }
+
+        if (!sessions.length && !showLiveRow) {
           const empty = document.createElement("div");
           ((empty.className = "a-sess-empty"),
-            (empty.textContent = "No sessions tracked yet."),
+            (empty.textContent =
+              "No sessions tracked yet." +
+              (isCurrent
+                ? " Sessions under 5 minutes aren't logged individually — this visit will show up here once it passes that."
+                : "")),
             list.appendChild(empty));
         } else {
           sessions
@@ -30012,7 +30205,16 @@
          closes the tab — never makes it into the registry and silently
          never shows up in History. */
       _ensureOpenForest();
-      _syncRegistryFromOpen();
+      /* Refresh an existing row only — never create one here. A forest
+         that already has a registry entry (anything created, opened or
+         restored) gets its entry kept current so endSession has
+         something to write into. A first-run intro forest has no entry
+         yet, and minting one at boot added a fresh "Untitled Forest" row
+         on every load that didn't restore a crash cache; it gets its
+         entry the normal way instead, from the first save, create,
+         rename or open. reg.activeId is left pointing at whatever was
+         genuinely last active rather than at a row that doesn't exist. */
+      if (_regEntry(_openForest.id)) _syncRegistryFromOpen();
       window.arborTimeTracking && window.arborTimeTracking.startSession(_openForest.id);
       const aTree = () => forest.find((e) => e.id === activeId) || forest[0];
       let recentIds = forest
@@ -51841,6 +52043,13 @@
           t && (_lastFileHandle = t),
           t || opts.keepHandle || (_lastFileHandle = null),
           _adoptForestIdentity(e, t, opts),
+          /* Registry entry has to exist (with the real name/id from
+             _adoptForestIdentity) *before* startSession below — see
+             state/forest-state's boot-time comment on this same
+             ordering. Without it, endSession's _regPatch and the History
+             sheet's _regEntry lookup find no entry to write/read, and any
+             row that gets created downstream is missing `name`. */
+          _syncRegistryFromOpen(),
           /* Start timing this forest's session now that it's the open
              one — see forest/time-tracking. This is the single load path
              for every forest (launch, import, or a Forests-tab switch),
@@ -51851,7 +52060,6 @@
           window._clearUndoHistory && window._clearUndoHistory(),
           window._resetTabDeck && window._resetTabDeck(),
           render(),
-          _syncRegistryFromOpen(),
           renderForests(),
           t && !opts.silent && showImportBanner());
       }
