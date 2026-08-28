@@ -220,198 +220,6 @@
         box-shadow: 0 0 5px rgba(30,160,30,.8),0 0 10px rgba(30,160,30,.4);
       }
 
-      /* ─── SESSION TIMER CIRCLE — mirrors #focus-radio-wrap's shape and
-         anchor (both position against .logo, which is position:relative
-         + overflow:visible), placed at the opposite corner since the
-         top-right corner already belongs to focus mode. Two characters
-         need more room than the 14px focus dot, so this is sized up
-         slightly; past 99 minutes it swaps the digits for an hour glyph
-         instead of truncating (see .cap below). ─── */
-      #hdr-timer-wrap {
-        position: absolute;
-        bottom: -4px;
-        right: -11px;
-        z-index: 10;
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        border: 1.5px solid rgba(180,120,50,.55);
-        background: rgba(30,12,4,.82);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: border-color .2s,background .2s,box-shadow .2s,transform .12s;
-        /* Clickable — doubles as a pause/play toggle (see the click
-           listener in forest/time-tracking). Was pointer-events:none when
-           this was a read-only badge; a 20px circle at the logo's corner
-           is a small but adequate tap target, and the surrounding logo
-           still receives clicks everywhere outside this circle. */
-        cursor: pointer;
-        -webkit-tap-highlight-color: transparent;
-      }
-
-      #hdr-timer-wrap:active { transform: scale(.9); }
-
-      #hdr-timer-wrap.paused {
-        border-color: rgba(154,200,88,.7);
-        background: rgba(30,12,4,.9);
-      }
-      #hdr-timer-wrap.paused #hdr-timer-num {
-        color: #9AC858;
-        font-size: .5rem;
-      }
-
-      body.mode-roots #hdr-timer-wrap.paused { border-color: rgba(90,120,30,.65); }
-      body.mode-roots #hdr-timer-wrap.paused #hdr-timer-num { color: #4A6410; }
-      body.mode-mist  #hdr-timer-wrap.paused { border-color: rgba(70,140,40,.6); }
-      body.mode-mist  #hdr-timer-wrap.paused #hdr-timer-num { color: #3A7010; }
-
-      #hdr-timer-num {
-        font-family: var(--f-body);
-        font-weight: 700;
-        font-size: .54rem;
-        letter-spacing: -.02em;
-        color: #C8A060;
-        font-variant-numeric: tabular-nums;
-        line-height: 1;
-      }
-
-      #hdr-timer-wrap.hidden { display: none; }
-
-      /* Past the cap: the hour glyph reads slightly larger than two
-         digits did, so it doesn't look shrunken inside the same ring. */
-      #hdr-timer-wrap.cap #hdr-timer-num { font-size: .68rem; }
-
-      #hdr-timer-wrap.warm {
-        border-color: rgba(224,112,48,.75);
-        box-shadow: 0 0 0 2px rgba(224,112,48,.18),0 0 7px rgba(224,112,48,.42);
-      }
-      #hdr-timer-wrap.warm #hdr-timer-num { color: #E08850; }
-
-      body.mode-roots #hdr-timer-wrap {
-        border-color: rgba(120,80,20,.5);
-        background: rgba(230,215,185,.85);
-      }
-      body.mode-roots #hdr-timer-num { color: #7A5030; }
-      body.mode-roots #hdr-timer-wrap.warm { border-color: rgba(160,60,16,.6); }
-      body.mode-roots #hdr-timer-wrap.warm #hdr-timer-num { color: #A04010; }
-
-      body.mode-mist #hdr-timer-wrap {
-        border-color: rgba(160,140,100,.45);
-        background: rgba(245,242,235,.9);
-      }
-      body.mode-mist #hdr-timer-num { color: #666; }
-      body.mode-mist #hdr-timer-wrap.warm { border-color: rgba(192,88,32,.55); }
-      body.mode-mist #hdr-timer-wrap.warm #hdr-timer-num { color: #C05820; }
-
-      /* ─── TRACKING-PAUSED NOTICE — a small app-native popup surfaced the
-         first time an edit lands while the header timer is paused (see
-         forest/time-tracking's _maybeNotifyPausedEdit). Styled to match
-         the confirm sheet (.a-confirm-*) so it reads as part of the same
-         UI language, but implemented as its own fixed overlay rather than
-         pushed onto the sheet stack: it needs a real decision (Start
-         Tracking / Keep tracking paused), not a dismiss-and-back like the
-         sheet stack's Escape/backdrop handling would otherwise allow. ─── */
-      #ptn-ov {
-        position: fixed;
-        inset: 0;
-        z-index: 100002;
-        display: none;
-        align-items: center;
-        justify-content: center;
-        padding: 24px;
-        background: rgba(10,4,1,.55);
-        backdrop-filter: blur(2px);
-      }
-      #ptn-ov.open { display: flex; }
-
-      #ptn-box {
-        width: 100%;
-        max-width: 320px;
-        border-radius: 14px;
-        padding: 18px 18px 16px;
-        background: #1E1008;
-        border: 1px solid #38200C;
-        box-shadow: 0 12px 40px rgba(0,0,0,.5);
-        animation: ptn-in .16s ease-out;
-      }
-      @keyframes ptn-in {
-        from { opacity: 0; transform: translateY(6px) scale(.97); }
-        to { opacity: 1; transform: none; }
-      }
-
-      body.mode-roots #ptn-box { background: #E2D8C0; border-color: #B0A070; }
-      body.mode-mist  #ptn-box { background: #ffffff; border-color: #cccccc; }
-
-      #ptn-title {
-        font-family: var(--f-display);
-        font-weight: 700;
-        font-size: .96rem;
-        color: #E2D8C0;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      body.mode-roots #ptn-title { color: #3A2A10; }
-      body.mode-mist  #ptn-title { color: #222; }
-
-      #ptn-title .ptn-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #9AC858;
-        flex: none;
-      }
-
-      #ptn-msg {
-        font-family: var(--f-body);
-        font-size: .85rem;
-        line-height: 1.5;
-        color: #D8C8A0;
-        margin-top: 8px;
-      }
-      body.mode-roots #ptn-msg { color: #5A4020; }
-      body.mode-mist  #ptn-msg { color: #444; }
-
-      #ptn-actions {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin-top: 16px;
-      }
-
-      #ptn-start,
-      #ptn-keep {
-        border-radius: 9px;
-        padding: 11px 12px;
-        font-family: var(--f-display);
-        font-weight: 700;
-        font-size: .86rem;
-        cursor: pointer;
-        -webkit-tap-highlight-color: transparent;
-        transition: background .14s;
-        border: 1px solid transparent;
-      }
-
-      #ptn-start {
-        background: rgba(154,200,88,.22);
-        border-color: rgba(154,200,88,.55);
-        color: #B8E080;
-      }
-      #ptn-start:hover { background: rgba(154,200,88,.34); }
-
-      #ptn-keep {
-        background: rgba(255,255,255,.05);
-        border: 1px solid rgba(184,144,32,.28);
-        color: #D8C8A0;
-      }
-      #ptn-keep:hover { background: rgba(255,255,255,.1); }
-
-      body.mode-roots #ptn-start { background: rgba(90,120,30,.18); border-color: rgba(90,120,30,.5); color: #3A5008; }
-      body.mode-roots #ptn-keep  { background: rgba(0,0,0,.04); border-color: rgba(120,80,20,.28); color: #3A2A10; }
-      body.mode-mist  #ptn-start { background: rgba(60,140,30,.1); border-color: #9ecb8a; color: #2E7010; }
-      body.mode-mist  #ptn-keep  { background: rgba(0,0,0,.03); border-color: #ddd; color: #222; }
-
       /* ─── FOCUS MODE: hide floating UI elements that cover the tree ─── */
       body.focus-mode #fab-wrap,
       body.focus-mode #gh-handle,
@@ -532,6 +340,333 @@
 
       #hdr-sync-dot.show {
         display: block;
+      }
+
+      /* ─── Header timer badge ───────────────────────────────────────────
+         The sync button can't host the badge directly (a button inside a
+         button is invalid HTML), so the two sit side by side inside this
+         stack and the badge is positioned against the stack's box. The
+         stack shrink-wraps the title, which is what puts the badge on the
+         title's corner rather than out at the header's edge. */
+      #hdr-title-stack {
+        position: relative;
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        max-width: 100%;
+      }
+
+      /* Bottom-right counterpart to #hdr-sync-dot's top-right, so the two
+         badges never collide on the same corner. */
+      #hdr-timer-badge {
+        position: absolute;
+        bottom: -3px;
+        right: -7px;
+        width: 18px;
+        height: 18px;
+        padding: 0;
+        border-radius: 50%;
+        border: 1px solid rgba(184,144,32,.45);
+        background: #2A1A08;
+        color: #C8A050;
+        font-family: var(--f-body);
+        font-size: .52rem;
+        font-weight: 700;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        flex-shrink: 0;
+        z-index: 2;
+        transition: transform .14s, background .14s, opacity .14s;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      #hdr-timer-badge:active { transform: scale(.88); }
+
+      /* Paused reads as "stopped", so it loses the gold and gains the
+         play glyph the click will act on. */
+      #hdr-timer-badge.paused {
+        color: #8A7A60;
+        border-color: rgba(140,120,80,.35);
+        opacity: .8;
+      }
+
+      /* Hidden outright when there's no forest being tracked — an idle
+         badge with nothing behind it would only invite a pointless tap. */
+      #hdr-timer-badge.hidden { display: none; }
+
+      body.mode-roots #hdr-timer-badge {
+        background: #EBDCB4;
+        border-color: rgba(120,80,20,.4);
+        color: #6A4410;
+      }
+
+      body.mode-roots #hdr-timer-badge.paused { color: #8A7550; }
+
+      body.mode-mist #hdr-timer-badge {
+        background: #FFFFFF;
+        border-color: #D4C090;
+        color: #7A5020;
+      }
+
+      body.mode-mist #hdr-timer-badge.paused { color: #9A8A70; }
+
+      /* ─── Paused-edit notice ───────────────────────────────────────────
+         Same modal shell as #settings-ov, one z-index above it so it can
+         be raised from anywhere, settings included. */
+      #timer-edit-ov {
+        position: fixed;
+        inset: 0;
+        z-index: 2200;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0,0,0,.55);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .22s ease;
+        padding: 20px;
+      }
+
+      #timer-edit-ov.open {
+        opacity: 1;
+        pointer-events: all;
+      }
+
+      #timer-edit-box {
+        width: 100%;
+        max-width: 330px;
+        background: linear-gradient(175deg,#3D2208 0%,#251407 38%,#1A0D06 100%);
+        border: 1.5px solid #7A4A1A;
+        border-radius: 18px;
+        box-shadow: 0 24px 64px rgba(0,0,0,.7);
+        padding: 20px;
+        transform: scale(.94) translateY(8px);
+        transition: transform .22s cubic-bezier(.34,1.08,.64,1);
+      }
+
+      #timer-edit-ov.open #timer-edit-box {
+        transform: scale(1) translateY(0);
+      }
+
+      body.mode-roots #timer-edit-box {
+        background: linear-gradient(175deg,#F5E8CA 0%,#E8D5A8 38%,#D8C490 100%);
+        border-color: #C8A060;
+        box-shadow: 0 24px 64px rgba(80,50,10,.35);
+      }
+
+      body.mode-mist #timer-edit-box {
+        background: linear-gradient(175deg,#FDFAF4 0%,#FAF6EC 38%,#F5EFE0 100%);
+        border-color: #D4C090;
+        box-shadow: 0 24px 48px rgba(0,0,0,.2);
+      }
+
+      #timer-edit-title {
+        font-family: var(--f-display);
+        font-weight: 700;
+        font-size: .9rem;
+        color: #D4A050;
+        letter-spacing: .02em;
+        margin-bottom: 8px;
+      }
+
+      body.mode-roots #timer-edit-title { color: #7A4A10; }
+      body.mode-mist  #timer-edit-title { color: #7A5020; }
+
+      #timer-edit-msg {
+        font-family: var(--f-body);
+        font-size: .8rem;
+        line-height: 1.5;
+        color: #B8A480;
+        margin-bottom: 16px;
+      }
+
+      body.mode-roots #timer-edit-msg { color: #6A5030; }
+      body.mode-mist  #timer-edit-msg { color: #666; }
+
+      #timer-edit-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .timer-edit-btn {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-family: var(--f-body);
+        font-size: .82rem;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid rgba(184,144,32,.3);
+        background: rgba(255,255,255,.05);
+        color: #C8B890;
+        transition: background .14s;
+      }
+
+      .timer-edit-btn:hover { background: rgba(255,255,255,.1); }
+
+      .timer-edit-btn.primary {
+        background: rgba(150,190,80,.2);
+        border-color: rgba(150,190,80,.45);
+        color: #C8E098;
+      }
+
+      .timer-edit-btn.primary:hover { background: rgba(150,190,80,.3); }
+
+      body.mode-roots .timer-edit-btn {
+        background: rgba(0,0,0,.05);
+        border-color: rgba(120,80,20,.28);
+        color: #4A3010;
+      }
+
+      body.mode-roots .timer-edit-btn.primary {
+        background: rgba(90,140,40,.18);
+        border-color: rgba(90,140,40,.42);
+        color: #2E4A10;
+      }
+
+      body.mode-mist .timer-edit-btn {
+        background: #FFFFFF;
+        border-color: #DDD;
+        color: #333;
+      }
+
+      body.mode-mist .timer-edit-btn.primary {
+        background: rgba(90,140,40,.14);
+        border-color: rgba(90,140,40,.4);
+        color: #2E4A10;
+      }
+
+      /* ─── Session history rows: live marker, per-row editing ─────────── */
+
+      /* The in-progress session is a projection, not a stored row, so it
+         is marked rather than left to look like recorded history. */
+      .a-sess-row.live .a-sess-date { font-style: italic; }
+
+      .a-sess-row.live .a-sess-dur {
+        opacity: 1;
+        color: #A8C860;
+      }
+
+      body.mode-roots .a-sess-row.live .a-sess-dur { color: #4A6A10; }
+      body.mode-mist  .a-sess-row.live .a-sess-dur { color: #4A6A10; }
+
+      .a-sess-actions {
+        display: flex;
+        gap: 4px;
+        flex-shrink: 0;
+      }
+
+      .a-sess-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: .72rem;
+        line-height: 1;
+        padding: 3px 5px;
+        border-radius: 5px;
+        color: #A08050;
+        opacity: .7;
+        transition: opacity .14s, background .14s;
+      }
+
+      .a-sess-btn:hover { opacity: 1; background: rgba(255,255,255,.08); }
+      .a-sess-btn.danger { color: #C06040; }
+
+      body.mode-roots .a-sess-btn { color: #7A5020; }
+      body.mode-roots .a-sess-btn:hover { background: rgba(0,0,0,.06); }
+      body.mode-mist  .a-sess-btn { color: #806030; }
+      body.mode-mist  .a-sess-btn:hover { background: rgba(0,0,0,.05); }
+
+      /* Add/edit form: stacked so the datetime control keeps its full
+         width on a phone instead of being squeezed beside the minutes. */
+      .a-sess-form {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(184,144,32,.12);
+      }
+
+      .a-sess-form:last-child { border-bottom: none; }
+
+      .a-sess-form input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 7px 9px;
+        border-radius: 7px;
+        border: 1px solid rgba(184,144,32,.28);
+        background: rgba(0,0,0,.25);
+        color: #E8D8B0;
+        font-family: var(--f-body);
+        font-size: .78rem;
+        outline: none;
+      }
+
+      body.mode-roots .a-sess-form input {
+        background: rgba(255,255,255,.6);
+        border-color: rgba(120,80,20,.3);
+        color: #3A2A10;
+      }
+
+      body.mode-mist .a-sess-form input {
+        background: #FFFFFF;
+        border-color: #DDD;
+        color: #222;
+      }
+
+      .a-sess-form-row {
+        display: flex;
+        gap: 6px;
+      }
+
+      .a-sess-form-row button {
+        flex: 1;
+        padding: 7px 10px;
+        border-radius: 7px;
+        font-family: var(--f-body);
+        font-size: .76rem;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid rgba(184,144,32,.3);
+        background: rgba(255,255,255,.05);
+        color: #C8B890;
+      }
+
+      .a-sess-form-row button.primary {
+        background: rgba(150,190,80,.2);
+        border-color: rgba(150,190,80,.45);
+        color: #C8E098;
+      }
+
+      body.mode-roots .a-sess-form-row button {
+        background: rgba(0,0,0,.05);
+        border-color: rgba(120,80,20,.28);
+        color: #4A3010;
+      }
+
+      body.mode-roots .a-sess-form-row button.primary {
+        background: rgba(90,140,40,.18);
+        border-color: rgba(90,140,40,.42);
+        color: #2E4A10;
+      }
+
+      body.mode-mist .a-sess-form-row button {
+        background: #FFFFFF;
+        border-color: #DDD;
+        color: #333;
+      }
+
+      body.mode-mist .a-sess-form-row button.primary {
+        background: rgba(90,140,40,.14);
+        border-color: rgba(90,140,40,.4);
+        color: #2E4A10;
       }
 
       #btn-tree-dd {
@@ -22031,25 +22166,6 @@
         background: rgba(0,0,0,.02);
       }
 
-      /* Used on the standalone History sheet (sheetForestSessionHistory),
-         where the list is the entire sheet body rather than one capped
-         section among several actions — the sheet itself already scrolls
-         and frames the content, so the inner cap/border/background here
-         would just be a redundant nested box. */
-      .a-sess-list-full {
-        max-height: none;
-        overflow-y: visible;
-        border: none;
-        border-radius: 0;
-        background: transparent;
-        margin: 2px 0 0;
-      }
-      body.mode-roots .a-sess-list-full,
-      body.mode-mist  .a-sess-list-full {
-        border: none;
-        background: transparent;
-      }
-
       .a-sess-row {
         display: flex;
         align-items: baseline;
@@ -22064,8 +22180,6 @@
 
       .a-sess-row:last-child { border-bottom: none; }
 
-      .a-sess-list-full .a-sess-row { padding: 10px 2px; }
-
       body.mode-roots .a-sess-row {
         color: #3A2A10;
         border-bottom-color: rgba(120,80,20,.14);
@@ -22076,34 +22190,6 @@
         border-bottom-color: #ececec;
       }
 
-      /* The currently-running session's row — see PAUSED-EDIT NOTICE's
-         sibling comment in sheetForestSessionHistory for why this exists
-         (snapshot() never includes the in-progress stretch in sessions[],
-         so without this the list looks empty/stalled the entire time a
-         long session is still open). Pulled slightly forward of the
-         completed rows via background tint, and the pulsing dot is the
-         one visual cue that this row isn't final yet — its duration will
-         keep climbing on every re-render until the session actually ends. */
-      .a-sess-row-live {
-        background: rgba(154,200,88,.08);
-        border-radius: 6px;
-        border-bottom-color: transparent;
-      }
-
-      .a-sess-live-dot {
-        flex-shrink: 0;
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: #9AC858;
-        animation: a-sess-live-pulse 1.6s ease-in-out infinite;
-      }
-
-      @keyframes a-sess-live-pulse {
-        0%, 100% { opacity: .35; }
-        50% { opacity: 1; }
-      }
-
       .a-sess-date {
         flex: 1;
         min-width: 0;
@@ -22112,48 +22198,10 @@
         white-space: nowrap;
       }
 
-      /* Manual-vs-tracked indicator. A small dot + label rather than an
-         icon-only mark, since "manual" and "tracked" aren't otherwise
-         self-explanatory at a glance and the row already has room. Tracked
-         sessions get no badge at all (the unmarked default), so the badge
-         only ever appears on rows the user added by hand — keeping the
-         common case visually quiet. */
-      .a-sess-badge {
-        flex-shrink: 0;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        font-family: var(--f-display);
-        font-size: .6rem;
-        font-weight: 700;
-        letter-spacing: .04em;
-        text-transform: uppercase;
-        color: #9AC858;
-        opacity: .85;
-      }
-
-      .a-sess-badge::before {
-        content: "";
-        width: 5px;
-        height: 5px;
-        border-radius: 50%;
-        background: currentColor;
-      }
-
-      body.mode-roots .a-sess-badge { color: #5A7010; }
-      body.mode-mist  .a-sess-badge { color: #3A7010; }
-
       .a-sess-dur {
         flex-shrink: 0;
         opacity: .75;
         font-variant-numeric: tabular-nums;
-      }
-
-      /* Wraps the pencil/✕ pair shown per-row in edit mode. */
-      .a-sess-row-actions {
-        flex-shrink: 0;
-        display: flex;
-        gap: 6px;
       }
 
       .a-sess-empty {
@@ -22165,187 +22213,6 @@
 
       body.mode-roots .a-sess-empty { color: #7A5030; }
       body.mode-mist  .a-sess-empty { color: #888; }
-
-      /* Footer actions on the standalone History sheet (Add / Delete a
-         session). Sits under the list, same visual language as
-         shine-meta-btn but full-width and paired, since this is the
-         sheet's primary action row rather than an inline toolbar. */
-      .a-sess-foot {
-        display: flex;
-        gap: 8px;
-        margin-top: 12px;
-      }
-
-      .a-sess-foot-btn {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        font-family: var(--f-display);
-        font-size: .72rem;
-        font-weight: 700;
-        letter-spacing: .04em;
-        padding: 10px 12px;
-        border-radius: 9px;
-        cursor: pointer;
-        border: 1px solid rgba(200,160,42,.4);
-        background: rgba(200,160,42,.08);
-        color: #C8A028;
-        -webkit-tap-highlight-color: transparent;
-        transition: background .14s, border-color .14s, transform .12s;
-      }
-
-      .a-sess-foot-btn:hover { background: rgba(200,160,42,.18); border-color: rgba(200,160,42,.6); }
-      .a-sess-foot-btn:active { transform: scale(.97); }
-
-      .a-sess-foot-btn.a-sess-foot-edit {
-        border-color: rgba(184,144,32,.4);
-        background: rgba(184,144,32,.1);
-        color: #C8A028;
-      }
-
-      .a-sess-foot-btn.a-sess-foot-edit:hover {
-        background: rgba(184,144,32,.2);
-        border-color: rgba(184,144,32,.6);
-      }
-
-      .a-sess-foot-btn.a-sess-foot-edit.active {
-        background: rgba(184,144,32,.26);
-        border-color: rgba(184,144,32,.7);
-      }
-
-      .a-sess-foot-btn[disabled] {
-        opacity: .4;
-        cursor: not-allowed;
-      }
-
-      body.mode-roots .a-sess-foot-btn {
-        border-color: rgba(140,90,28,.4);
-        background: rgba(140,90,28,.08);
-        color: #7A4820;
-      }
-      body.mode-roots .a-sess-foot-btn:hover { background: rgba(140,90,28,.16); }
-      body.mode-roots .a-sess-foot-btn.a-sess-foot-edit {
-        border-color: rgba(140,90,28,.45);
-        background: rgba(140,90,28,.14);
-        color: #6A3A10;
-      }
-      body.mode-roots .a-sess-foot-btn.a-sess-foot-edit:hover { background: rgba(140,90,28,.22); }
-
-      body.mode-mist .a-sess-foot-btn {
-        border-color: #ddb96a;
-        background: rgba(210,160,40,.06);
-        color: #8A6010;
-      }
-      body.mode-mist .a-sess-foot-btn:hover { background: rgba(210,160,40,.14); }
-      body.mode-mist .a-sess-foot-btn.a-sess-foot-edit {
-        border-color: #ddb96a;
-        background: rgba(210,160,40,.14);
-        color: #7A5010;
-      }
-      body.mode-mist .a-sess-foot-btn.a-sess-foot-edit:hover { background: rgba(210,160,40,.22); }
-
-      /* Per-row edit (✎) / remove (✕) controls shown only while edit mode
-         is active. Pencil is amber/neutral like the app's other inline
-         edit affordances (e.g. tag rename); ✕ stays the danger red used
-         for destructive actions throughout the sheet stack. */
-      .a-sess-row-pencil {
-        flex-shrink: 0;
-        width: 22px;
-        height: 22px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 6px;
-        border: 1px solid rgba(184,144,32,.3);
-        background: rgba(184,144,32,.1);
-        color: #C8A028;
-        font-size: .72rem;
-        line-height: 1;
-        cursor: pointer;
-        -webkit-tap-highlight-color: transparent;
-      }
-      .a-sess-row-pencil:hover { background: rgba(184,144,32,.2); }
-      .a-sess-row-pencil[disabled] {
-        opacity: .25;
-        cursor: not-allowed;
-      }
-
-      body.mode-roots .a-sess-row-pencil {
-        border-color: rgba(140,90,28,.35);
-        background: rgba(140,90,28,.1);
-        color: #7A4820;
-      }
-      body.mode-mist .a-sess-row-pencil {
-        border-color: #ddb96a;
-        background: rgba(210,160,40,.08);
-        color: #8A6010;
-      }
-
-      .a-sess-row-x {
-        flex-shrink: 0;
-        width: 22px;
-        height: 22px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 6px;
-        border: 1px solid rgba(200,90,60,.35);
-        background: rgba(200,90,60,.1);
-        color: #E08870;
-        font-size: .72rem;
-        line-height: 1;
-        cursor: pointer;
-        -webkit-tap-highlight-color: transparent;
-      }
-      .a-sess-row-x:hover { background: rgba(200,90,60,.2); }
-
-      body.mode-roots .a-sess-row-x {
-        border-color: rgba(160,50,30,.4);
-        background: rgba(160,50,30,.1);
-        color: #9A3A18;
-      }
-      body.mode-mist .a-sess-row-x {
-        border-color: #d09080;
-        background: rgba(190,60,40,.08);
-        color: #B03A18;
-      }
-
-      /* Inline "Add a session" form, appended above the list. */
-      .a-sess-form {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        padding: 12px;
-        margin: 2px 0 14px;
-        border: 1px solid rgba(184,144,32,.25);
-        border-radius: 10px;
-        background: rgba(255,255,255,.03);
-      }
-      body.mode-roots .a-sess-form {
-        border-color: rgba(120,80,20,.25);
-        background: rgba(0,0,0,.03);
-      }
-      body.mode-mist .a-sess-form {
-        border-color: #e2e2e2;
-        background: rgba(0,0,0,.015);
-      }
-
-      .a-sess-form-row {
-        display: flex;
-        gap: 8px;
-      }
-      .a-sess-form-row .shine-meta-edit-field { flex: 1; min-width: 0; }
-
-      .a-sess-form-err {
-        font-size: .74rem;
-        color: #E08870;
-        display: none;
-      }
-      .a-sess-form-err.show { display: block; }
-      body.mode-roots .a-sess-form-err { color: #9A3A18; }
-      body.mode-mist  .a-sess-form-err { color: #B03A18; }
 
       /* Wrapping tag grid — deliberately wraps instead of scrolling
          sideways, so it never nests a horizontal scroller in a list. */
@@ -24068,18 +23935,25 @@
         <div id="focus-radio-wrap" title="Focus mode — hide floating UI" role="button" aria-pressed="false">
           <span id="focus-dot"></span>
         </div>
-        <div id="hdr-timer-wrap" class="hidden" title="Time spent this session" aria-hidden="true">
-          <span id="hdr-timer-num">0</span>
-        </div>
       </div>
       <div id="tree-name-wrap">
-        <button
-          id="hdr-sync-btn"
-          title="Sync — save forest to last exported file"
-        >
-          <span id="hdr-name-scroll"><span id="hdr-tree-name">—</span></span>
-          <span id="hdr-sync-dot" title="Unsaved changes"></span>
-        </button>
+        <div id="hdr-title-stack">
+          <button
+            id="hdr-sync-btn"
+            title="Sync — save forest to last exported file"
+          >
+            <span id="hdr-name-scroll"><span id="hdr-tree-name">—</span></span>
+            <span id="hdr-sync-dot" title="Unsaved changes"></span>
+          </button>
+          <button
+            id="hdr-timer-badge"
+            class="hidden"
+            type="button"
+            title="Time tracking"
+            aria-label="Toggle time tracking"
+            aria-pressed="true"
+          >0</button>
+        </div>
       </div>
       <button
         id="hdr-find-btn"
@@ -24122,16 +23996,6 @@
         title="Tree controls"
         aria-label="Tree controls"
       >⋮</button>
-    </div>
-    <div id="ptn-ov" role="alertdialog" aria-modal="true" aria-labelledby="ptn-title" aria-describedby="ptn-msg">
-      <div id="ptn-box">
-        <div id="ptn-title"><span class="ptn-dot"></span>Time tracking is paused</div>
-        <div id="ptn-msg">You're editing this forest while tracking is paused, so this time isn't being counted.</div>
-        <div id="ptn-actions">
-          <button type="button" id="ptn-start">Start Tracking</button>
-          <button type="button" id="ptn-keep">Keep tracking paused</button>
-        </div>
-      </div>
     </div>
     <div id="tree-dd"></div>
     <div id="tab-bar">
@@ -25354,9 +25218,26 @@
         <div class="settings-row">
           <div class="settings-row-text">
             <span class="settings-row-label">Keep tracking in background</span>
-            <span class="settings-row-desc">Count backgrounded time as active until the idle timeout above passes, instead of pausing the moment Arbor leaves the screen</span>
+            <span class="settings-row-desc">Keep counting when the tab is hidden, up to the idle timeout</span>
           </div>
-          <button class="settings-toggle" id="settings-toggle-idle-from-background" type="button" role="switch" aria-checked="false"><span class="settings-toggle-knob"></span></button>
+          <button class="settings-toggle" id="settings-toggle-idle-background" type="button" role="switch" aria-checked="false"><span class="settings-toggle-knob"></span></button>
+        </div>
+      </div>
+    </div>
+    <!-- Raised when a card or tree is edited while time tracking is
+         paused, so a working stretch isn't silently left unlogged. Built
+         here rather than on demand so the notice can be shown from the
+         edit path without touching the DOM mid-edit. -->
+    <div id="timer-edit-ov">
+      <div id="timer-edit-box">
+        <div id="timer-edit-title">⏸ Tracking is paused</div>
+        <div id="timer-edit-msg">
+          You're editing this forest, but time isn't being logged. Start
+          tracking to count this stretch of work.
+        </div>
+        <div id="timer-edit-actions">
+          <button class="timer-edit-btn primary" id="timer-edit-start" type="button">Start Tracking</button>
+          <button class="timer-edit-btn" id="timer-edit-keep" type="button">Keep tracking paused</button>
         </div>
       </div>
     </div>
@@ -26035,7 +25916,7 @@
           >
           <input
             id="vault-name-input"
-            placeholder="Untitled Forest"
+            value="Untitled Forest"
             maxlength="64"
             style="
               width: 100%;
@@ -27480,38 +27361,17 @@
       function _ensureOpenForest() {
         if (!_openForest) {
           const now = Date.now();
-          /* A forest restored from the crash cache keeps its existing id
-             (_lsCacheForestId, below), so it still has a registry entry
-             describing it — including the name the user gave it. Read
-             that entry back here, the same way _adoptForestIdentity
-             consults the cached entry when a file's own header has no
-             name of its own.
-             Without this the boot path re-entered a forest by id but
-             re-derived its name from nothing: _lastFileHandle is always
-             null this early (handles are recalled from IndexedDB
-             asynchronously, later), so the chain fell through to the
-             literal "Untitled Forest", and boot's _syncRegistryFromOpen
-             wrote that over the real name. fileName/linked were wiped by
-             the same write; both are display-only (mkForestRow's "not
-             saved to a file" label) and are restored for the same
-             reason. timeSpent is deliberately left alone — forest/time-
-             tracking owns it and reconciles it against IndexedDB. */
-          const _cachedEntry = _lsCacheForestId ? _regEntry(_lsCacheForestId) : null;
           _openForest = {
             id: _lsCacheForestId || mkForestId(),
             name:
-              (_cachedEntry && _cachedEntry.name) ||
               _nameFromFileName(_lastFileHandle && _lastFileHandle.name) ||
               "Untitled Forest",
-            createdAt: (_cachedEntry && _cachedEntry.createdAt) || now,
+            createdAt: now,
             lastModified: now,
             lastOpenedAt: now,
-            mode: (_cachedEntry && _cachedEntry.mode) || (_HAS_FSA ? "fs" : "idb"),
-            fileName:
-              (_lastFileHandle && _lastFileHandle.name) ||
-              (_cachedEntry && _cachedEntry.fileName) ||
-              null,
-            linked: !!_lastFileHandle || !!(_cachedEntry && _cachedEntry.linked),
+            mode: _HAS_FSA ? "fs" : "idb",
+            fileName: (_lastFileHandle && _lastFileHandle.name) || null,
+            linked: !!_lastFileHandle,
             /* Per-forest time totals — see forest/time-tracking, which
                owns the live session clock and only ever reaches in here
                to read/replace this block wholesale. { totalMs: number,
@@ -27709,17 +27569,16 @@
  * timeout (mouse, touch, scroll and key input all count as active; reading
  * or scrolling without clicking still counts, since none of those events
  * require a click). The idle timeout is user-configurable from Settings
- * (see settings/settings-popup, window.arborSettings.idleTimeoutMinutes).
+ * (see settings/settings-popup, window.arborSettings.idleTimeoutMinutes), as
+ * is whether a hidden tab keeps counting up to that same limit
+ * (window.arborSettings.idleFromBackground).
  *
- * By default, going hidden (backgrounded tab, locked phone, app switch)
- * pauses the clock immediately — see _onVisibilityChange. If
- * window.arborSettings.idleFromBackground is on, going hidden instead
- * arms the same idle timeout used for on-screen inactivity: the clock
- * keeps running through the backgrounded stretch, and only actually
- * pauses if the user doesn't come back before the timeout elapses. This
- * lets someone who steps away mid-thought (a phone call, a quick errand)
- * have that time still count, without changing what "idle" means once
- * they're back and genuinely not touching the app.
+ * Tracking can also be paused and resumed by hand from the header badge
+ * (see header/timer-badge). A manual pause outranks everything: no amount
+ * of input resumes it, only an explicit resume does. Because a paused
+ * tracker silently logs nothing, editing while paused raises a one-off
+ * notice (see forest/paused-edit-notice) rather than letting a whole
+ * working stretch go unrecorded.
  *
  * A "session" runs from the moment a forest becomes the open forest
  * (applyParsedForest, called by both initial load and switchForest) until
@@ -27732,11 +27591,18 @@
  * same totals to IndexedDB (forest/indexeddb's timeLog store) as a
  * fallback that survives even if the JSON is never saved/exported again.
  *
+ * Every session's length lands in totalMs, but only sessions of at least
+ * _TT_MIN_LOGGED_MS earn their own row in the sessions list: a list padded
+ * with thirty-second glances would bury the stretches actually worth
+ * reading. The history sheet (forest/sheets) can add, edit and delete rows
+ * by hand through addSession/updateSession/deleteSession for anything the
+ * automatic tracker missed.
+ *
  * Exposed on window.arborTimeTracking so other modules (forest/identity's
- * buildForestMeta, forest/list-render's mkForestRow) can read current
- * totals without a direct function dependency, matching the
- * window.arborSettings pattern already used for cross-module settings
- * reads.
+ * buildForestMeta, forest/list-render's mkForestRow, forest/sheets' history
+ * view, sync/file-sync's markUnsaved) can read current totals without a
+ * direct function dependency, matching the window.arborSettings pattern
+ * already used for cross-module settings reads.
  *
  * SCOPE
  *   Runs in the shared global scope of the assembled application script.
@@ -27747,36 +27613,29 @@
  * DECLARES (functions, globally reachable)
  *   window.arborTimeTracking.snapshot, window.arborTimeTracking.startSession,
  *   window.arborTimeTracking.endSession, window.arborTimeTracking.fmtDuration,
- *   window.arborTimeTracking.sessionElapsedMs, window.arborTimeTracking.isPaused,
- *   window.arborTimeTracking.togglePaused,
- *   window.arborTimeTracking.notifyEditWhilePaused,
- *   window.arborTimeTracking.closePausedEditNotice, _refreshHdrTimer
+ *   window.arborTimeTracking.pause, window.arborTimeTracking.resume,
+ *   window.arborTimeTracking.togglePause, window.arborTimeTracking.isPaused,
+ *   window.arborTimeTracking.isTracking,
+ *   window.arborTimeTracking.sessionElapsedMs,
+ *   window.arborTimeTracking.liveSession, window.arborTimeTracking.noteEdit,
+ *   window.arborTimeTracking.setEditNotifier,
+ *   window.arborTimeTracking.addSession,
+ *   window.arborTimeTracking.updateSession,
+ *   window.arborTimeTracking.deleteSession, window.arborTimeTracking.onChange
  *
  * DECLARES (state bindings, globally reachable)
- *   _timeTrackState, MIN_LOGGED_SESSION_MS
+ *   _timeTrackState, _TT_MIN_LOGGED_MS
  *
  * CONSUMES (declared in other modules)
- *   _openForest, _readForestTimeLog, _storeForestTimeLog, window.arborSettings
- *
- * DOM ELEMENTS (by id)
- *   hdr-timer-wrap, hdr-timer-num, ptn-ov, ptn-start, ptn-keep
+ *   _openForest, _readForestTimeLog, _storeForestTimeLog, _regPatch,
+ *   renderForests, window.arborSettings
  *
  * SIDE EFFECTS
  *   - registers DOM event listeners
  *   - reads/writes IndexedDB
+ *   - reads localStorage
  *   - schedules timers
- *   - writes to the header timer badge's text/classes
  */
-      /* Sessions shorter than this don't get their own row in the History
-         list — a string of brief glances would just clutter it — but the
-         time itself is still real and rolls into the running total shown
-         as "Total time tracked". Shared by endSession (write-time, so new
-         short sessions are never appended) and sheetForestSessionHistory
-         (read-time, so short sessions saved by an earlier build — before
-         this threshold existed — are filtered out of the list too,
-         without needing to rewrite any forest's saved JSON). */
-      const MIN_LOGGED_SESSION_MS = 5 * 60 * 1000;
-
       const _timeTrackState = {
         forestId: null,
         /* Wall-clock time (Date.now()) the current active stretch began,
@@ -27789,22 +27648,68 @@
            whatever stretch is currently running (activeSince, if set). */
         sessionMs: 0,
         idleTimer: null,
-        /* True once the user has tapped the header timer badge to pause.
-           Distinct from the idle state (activeSince === null after
-           _goIdle): idle is transient and self-clears on the next
-           activity event, while paused is a sticky, user-chosen state
-           that activity alone must never clear — only another tap (or
-           switching away from the forest, which ends the session
-           outright) can. _goActive short-circuits whenever this is set,
-           which is what keeps mousemove/scroll/etc. from silently
-           resuming a session the user paused on purpose. */
+        /* Paused by hand, as opposed to merely idle. Kept separate from
+           activeSince===null because idle is undone by the next stray
+           mousemove while a manual pause must survive one. */
         paused: false,
+        /* Wall-clock start of the session as a whole (not of the current
+           active stretch) — the "opened at" the history list shows for
+           the in-progress row. */
+        sessionStartedAt: null,
+        /* One notice per paused stretch: the modal is a nudge, and one
+           that reappeared on every keystroke would be an obstruction. */
+        noticeShown: false,
       };
 
+      /* Sessions shorter than this still count toward totalMs but get no
+         row of their own in the history list. */
+      const _TT_MIN_LOGGED_MS = 5 * 60 * 1000;
+
+      /* settings/settings-popup runs near the end of the file, so
+         window.arborSettings doesn't exist yet during early boot — while
+         localStorage already holds the saved values. Reading through to
+         storage on the fallback path means a tracker started before the
+         settings module loads still honours the user's real preferences
+         rather than silently using defaults for the first session. */
+      function _ttSetting(key, fallback) {
+        if (window.arborSettings && undefined !== window.arborSettings[key])
+          return window.arborSettings[key];
+        try {
+          const raw = JSON.parse(localStorage.getItem("arbor-settings") || "{}");
+          if (raw && undefined !== raw[key]) return raw[key];
+        } catch (e) {}
+        return fallback;
+      }
+
       function _idleTimeoutMs() {
-        const mins =
-          (window.arborSettings && window.arborSettings.idleTimeoutMinutes) || 5;
+        const mins = _ttSetting("idleTimeoutMinutes", 5) || 5;
         return mins * 60 * 1000;
+      }
+
+      /* Listeners fire whenever the tracked total, the paused flag or the
+         stored session list changes, so the header badge and an open
+         history sheet can repaint without polling each other. */
+      const _ttListeners = [];
+
+      function onChange(fn) {
+        if ("function" == typeof fn) _ttListeners.push(fn);
+      }
+
+      function _ttEmit() {
+        _ttListeners.forEach((fn) => {
+          try {
+            fn();
+          } catch (e) {}
+        });
+      }
+
+      /* Set by forest/paused-edit-notice once its modal is wired. Left as
+         a hook rather than a direct call so this module keeps working
+         (silently) if that one is ever dropped from the manifest. */
+      let _ttEditNotifier = null;
+
+      function setEditNotifier(fn) {
+        _ttEditNotifier = "function" == typeof fn ? fn : null;
       }
 
       /* Folds the currently-running active stretch (if any) into
@@ -27820,12 +27725,11 @@
 
       function _goActive() {
         if (!_timeTrackState.forestId) return;
-        /* A paused session stays paused through activity — see the
-           .paused doc comment above. Only _resumeTimeTracking (the
-           badge's own tap handler) is allowed to clear it. */
+        /* A manual pause is deliberate, so ordinary input must not undo
+           it — only resume() clears the flag. */
         if (_timeTrackState.paused) return;
         if (null === _timeTrackState.activeSince)
-          _timeTrackState.activeSince = Date.now();
+          ((_timeTrackState.activeSince = Date.now()), _ttEmit());
         (clearTimeout(_timeTrackState.idleTimer),
           (_timeTrackState.idleTimer = setTimeout(_goIdle, _idleTimeoutMs())));
       }
@@ -27833,6 +27737,7 @@
       function _goIdle() {
         _rollActiveIntoSession();
         _timeTrackState.activeSince = null;
+        _ttEmit();
       }
 
       /* Reading and scrolling both count as active — neither requires a
@@ -27842,26 +27747,141 @@
          {passive:true} since none of these need to intercept the event. */
       const _ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "touchstart", "touchmove", "scroll", "wheel"];
 
+      /* Hiding the tab normally stops the clock at once, since a tab you
+         can't see isn't a forest you're reading. "Keep tracking in
+         background" instead leaves the idle timer to expire on its own,
+         which caps unattended background time at the idle timeout —
+         useful when the forest is a reference held open beside the work
+         it's being copied into. */
       function _onVisibilityChange() {
         if ("hidden" === document.visibilityState) {
-          if (window.arborSettings && window.arborSettings.idleFromBackground) {
-            /* Treat going hidden like any other momentary pause: leave
-               the active stretch running (don't fold/reset activeSince)
-               and just (re)arm the same idle timer _goActive uses, so
-               the clock keeps counting through the backgrounded stretch
-               until either the user returns (this same timer just gets
-               cleared by the next _goActive, same as normal) or the idle
-               timeout genuinely elapses while still hidden. Only takes
-               effect if a session is actually running. */
-            _timeTrackState.forestId &&
-              (clearTimeout(_timeTrackState.idleTimer),
-                (_timeTrackState.idleTimer = setTimeout(_goIdle, _idleTimeoutMs())));
-          } else {
-            _goIdle();
-          }
-        } else if ("visible" === document.visibilityState) {
-          _goActive();
-        }
+          if (!_ttSetting("idleFromBackground", false)) _goIdle();
+        } else if ("visible" === document.visibilityState) _goActive();
+      }
+
+      /* Stops the clock by hand. Unlike going idle this survives further
+         input, so the badge keeps showing ▶ until the user resumes. */
+      function pause() {
+        if (_timeTrackState.paused) return;
+        _rollActiveIntoSession();
+        ((_timeTrackState.activeSince = null),
+          (_timeTrackState.paused = true),
+          (_timeTrackState.noticeShown = false));
+        (clearTimeout(_timeTrackState.idleTimer), (_timeTrackState.idleTimer = null));
+        _ttEmit();
+      }
+
+      function resume() {
+        if (!_timeTrackState.paused) return;
+        ((_timeTrackState.paused = false), (_timeTrackState.noticeShown = false));
+        (_goActive(), _ttEmit());
+      }
+
+      function togglePause() {
+        _timeTrackState.paused ? resume() : pause();
+      }
+
+      function isPaused() {
+        return !!_timeTrackState.paused;
+      }
+
+      function isTracking() {
+        return !!_timeTrackState.forestId;
+      }
+
+      /* Live elapsed time for the session in progress: what's banked plus
+         whatever stretch is running right now. Drives the badge's minute
+         count and the history sheet's in-progress row. */
+      function sessionElapsedMs() {
+        if (!_timeTrackState.forestId) return 0;
+        const running =
+          null === _timeTrackState.activeSince
+            ? 0
+            : Math.max(0, Date.now() - _timeTrackState.activeSince);
+        return _timeTrackState.sessionMs + running;
+      }
+
+      /* The in-progress session as a history-list row. Returned separately
+         from the stored sessions (rather than spliced into them) so the
+         list can mark it as live and keep it out of anything that writes
+         back to storage. */
+      function liveSession(forestId) {
+        if (!_timeTrackState.forestId || _timeTrackState.forestId !== forestId)
+          return null;
+        return {
+          startedAt: _timeTrackState.sessionStartedAt,
+          ms: sessionElapsedMs(),
+          live: true,
+          paused: !!_timeTrackState.paused,
+        };
+      }
+
+      /* Called from sync/file-sync's markUnsaved on every edit. Only the
+         combination that actually loses data — a tracked forest, paused,
+         being edited — raises the notice, and only once per pause. */
+      function noteEdit() {
+        if (!_timeTrackState.forestId || !_timeTrackState.paused) return;
+        if (_timeTrackState.noticeShown) return;
+        _timeTrackState.noticeShown = true;
+        _ttEditNotifier && _ttEditNotifier();
+      }
+
+      /* Writes a log to all three places it lives: the open forest's
+         in-memory identity (so buildForestMeta picks it up on the next
+         save into the forest's own JSON), the IndexedDB fallback, and the
+         registry cache the Forests list reads. Shared by endSession and
+         the history sheet's manual edits so every write lands everywhere
+         rather than only where its caller happened to remember. */
+      async function _persistLog(forestId, log) {
+        if (_openForest && _openForest.id === forestId) _openForest.timeSpent = log;
+        try {
+          await _storeForestTimeLog(forestId, log);
+        } catch (e) {}
+        if ("function" == typeof _regPatch) _regPatch(forestId, { timeSpent: log });
+        (_ttEmit(), "function" == typeof renderForests && renderForests());
+      }
+
+      /* Best available copy of a forest's log: the open forest's own if
+         it's the one asked about, else the IndexedDB fallback, else an
+         empty log. Manual edits go through this so they apply to any
+         forest in the list, not only the open one. */
+      async function _loadLog(forestId) {
+        const prior =
+          (_openForest && _openForest.id === forestId && _openForest.timeSpent) ||
+          (await _readForestTimeLog(forestId)) ||
+          null;
+        return {
+          totalMs: (prior && prior.totalMs) || 0,
+          lastSessionMs: (prior && prior.lastSessionMs) || 0,
+          lastSessionEndedAt: (prior && prior.lastSessionEndedAt) || null,
+          /* Carried explicitly: this is the time from sessions too short
+             to have earned a row, so it exists nowhere else. Dropping it
+             here would make _retotal silently delete it on the next
+             manual edit, and make endSession restart the tally from zero
+             on every session. */
+          untracked: (prior && prior.untracked) || 0,
+          sessions:
+            prior && Array.isArray(prior.sessions) ? prior.sessions.slice() : [],
+        };
+      }
+
+      /* Sessions are kept oldest-first so the capped .slice(-100) drops
+         the oldest rather than the newest; the history view reverses for
+         display. A hand-added row can land anywhere in time, so the list
+         is re-sorted rather than appended to. */
+      function _sortSessions(sessions) {
+        return sessions.sort((a, b) => (a.startedAt || 0) - (b.startedAt || 0));
+      }
+
+      /* Recomputes totalMs from the rows themselves. Only used by the
+         manual-edit paths: a hand-edited list whose total didn't move
+         with it would report time the rows don't account for. Sessions
+         below the logging threshold were never given rows, so their time
+         is preserved separately as `untracked` and carried across edits. */
+      function _retotal(log) {
+        const rowMs = log.sessions.reduce((sum, s) => sum + (s.ms || 0), 0);
+        log.totalMs = rowMs + (log.untracked || 0);
+        return log;
       }
 
       /* Starts timing a newly-opened forest. Called once per forest per
@@ -27886,7 +27906,21 @@
         ((_timeTrackState.forestId = forestId),
           (_timeTrackState.sessionMs = 0),
           (_timeTrackState.activeSince = null),
-          (_timeTrackState.paused = false));
+          (_timeTrackState.sessionStartedAt = Date.now()),
+          /* A new forest starts counting: carrying a pause across a
+             switch would leave the badge paused for a forest the user
+             never paused. */
+          (_timeTrackState.paused = false),
+          (_timeTrackState.noticeShown = false));
+
+        /* Started before the IndexedDB read below, not after it: opening
+           a forest is itself user input, so the clock should run from the
+           moment it opens rather than from whenever a storage round-trip
+           happens to come back. Reconciling totals only touches
+           _openForest.timeSpent, never the live counters, so the two are
+           independent and the order between them is free. */
+        if ("visible" === document.visibilityState) _goActive();
+        _ttEmit();
 
         try {
           const stored = await _readForestTimeLog(forestId);
@@ -27897,12 +27931,6 @@
             if ((stored.totalMs || 0) > fileTotal) _openForest.timeSpent = stored;
           }
         } catch (e) {}
-
-        /* The tab may already be visible (the common case: opening a
-           forest is itself user input), so start active immediately
-           rather than waiting for the next visibilitychange. */
-        if ("visible" === document.visibilityState) _goActive();
-        "function" == typeof _refreshHdrTimer && _refreshHdrTimer();
       }
 
       /* Ends timing for `forestId` (must be the currently-tracked one),
@@ -27910,91 +27938,73 @@
          open forest's in-memory identity (so buildForestMeta picks it up
          on the very next save) and to the IndexedDB fallback. Safe to
          call more than once for the same forest — a second call simply
-         finds nothing left running and persists the same totals again.
-
-         Ordering here is deliberate and load-bearing for the beforeunload
-         case (see the listener below): a tab close gives this function
-         exactly one synchronous turn to run in — the browser is free to
-         discard the page the instant that turn ends, including any
-         pending promise continuation, even one that was already about to
-         resolve. localStorage (_regPatch, via _syncRegistryEndSession
-         below) is written synchronously and unconditionally, before any
-         `await`, specifically so the registry — which is what the
-         Forests tab and History sheet actually read — can never be lost
-         to that race. The `await _readForestTimeLog` fallback and the
-         IndexedDB mirror (_storeForestTimeLog) both still happen, but
-         strictly after: they're a nice-to-have persistence layer for a
-         normal in-app session end, not something History depends on, and
-         losing them on a hard tab close is an acceptable trade next to
-         losing the session's own history row entirely. */
+         finds nothing left running and persists the same totals again. */
       async function endSession(forestId) {
         if (!forestId || _timeTrackState.forestId !== forestId) return;
         _rollActiveIntoSession();
         (clearTimeout(_timeTrackState.idleTimer), (_timeTrackState.idleTimer = null));
 
         const ms = _timeTrackState.sessionMs;
+        const startedAt = _timeTrackState.sessionStartedAt || Date.now() - ms;
         ((_timeTrackState.forestId = null),
           (_timeTrackState.activeSince = null),
           (_timeTrackState.sessionMs = 0),
-          (_timeTrackState.paused = false));
-        "function" == typeof _refreshHdrTimer && _refreshHdrTimer();
+          (_timeTrackState.sessionStartedAt = null),
+          (_timeTrackState.paused = false),
+          (_timeTrackState.noticeShown = false));
 
-        if (ms <= 0) return;
+        if (ms <= 0) return void _ttEmit();
 
-        /* Best synchronously-available prior total. _openForest.timeSpent
-           covers the overwhelming majority of real endSession calls (the
-           forest currently timed is, by construction, almost always the
-           one open in memory) — the IndexedDB read a few lines down only
-           ever has to backfill a total for the rarer case where that's
-           missing, and by then the registry write below has already
-           landed regardless. */
-        const priorSync =
-          (_openForest && _openForest.id === forestId && _openForest.timeSpent) || {
-            totalMs: 0,
-            sessions: [],
-          };
-        /* Sessions under the shared threshold don't get their own row in
-           the History list — see MIN_LOGGED_SESSION_MS — but the time
-           itself is real, so it still rolls into the running total. */
-        const priorSessions = Array.isArray(priorSync.sessions) ? priorSync.sessions : [];
-        const sessions =
-          ms >= MIN_LOGGED_SESSION_MS
-            ? priorSessions.concat([{ startedAt: Date.now() - ms, ms: ms }]).slice(-100)
-            : priorSessions;
+        const prior = await _loadLog(forestId);
         const log = {
-          totalMs: (priorSync.totalMs || 0) + ms,
+          totalMs: (prior.totalMs || 0) + ms,
           lastSessionMs: ms,
           lastSessionEndedAt: Date.now(),
-          /* Capped history of individual sessions — enough for a future
-             per-session breakdown without the log growing unbounded. */
-          sessions: sessions,
+          /* Time from sessions too short to earn a row, kept so a manual
+             edit's re-total doesn't quietly discard it. */
+          untracked: (prior.untracked || 0) + (ms < _TT_MIN_LOGGED_MS ? ms : 0),
+          /* Capped history of individual sessions — enough for a
+             per-session breakdown without the log growing unbounded.
+             Brief glances are counted but not listed. */
+          sessions:
+            ms >= _TT_MIN_LOGGED_MS
+              ? _sortSessions(prior.sessions.concat([{ startedAt: startedAt, ms: ms }])).slice(-100)
+              : prior.sessions,
         };
 
-        if (_openForest && _openForest.id === forestId) _openForest.timeSpent = log;
-        /* The unconditional, synchronous write — see the doc comment
-           above for why this has to come before any `await` in here. */
-        if ("function" == typeof _regPatch) _regPatch(forestId, { timeSpent: log });
-        "function" == typeof renderForests && renderForests();
+        await _persistLog(forestId, log);
+      }
 
-        /* From here down is best-effort only: a normal in-app session
-           end (switching forests, opening a different one) has plenty of
-           time for these to finish, but a beforeunload call may never
-           get to run any of it, and that's fine — the line above already
-           persisted what History and the Forests tab actually read. */
-        try {
-          if (!(_openForest && _openForest.id === forestId && _openForest.timeSpent)) {
-            const stored = await _readForestTimeLog(forestId);
-            if (stored && (stored.totalMs || 0) > log.totalMs) {
-              /* Another device/tab's copy turned out to be ahead — extremely
-                 rare (this branch only runs when there was no in-memory
-                 total to begin with), but worth reconciling rather than
-                 silently keeping the smaller number. */
-              if ("function" == typeof _regPatch) _regPatch(forestId, { timeSpent: stored });
-              "function" == typeof renderForests && renderForests();
-            }
-          }
-          await _storeForestTimeLog(forestId, log);
-        } catch (e) {}
+      /* ─── Manual session editing (forest/sheets' history view) ─────── */
+
+      /* Adds a session by hand — for work the tracker missed, e.g. time
+         spent on a forest before this device ever opened it. */
+      async function addSession(forestId, startedAt, ms) {
+        if (!forestId || !(ms > 0)) return;
+        const log = await _loadLog(forestId);
+        log.sessions = _sortSessions(
+          log.sessions.concat([{ startedAt: startedAt || Date.now(), ms: ms }]),
+        ).slice(-100);
+        await _persistLog(forestId, _retotal(log));
+      }
+
+      /* Edits one stored row, addressed by its startedAt (the list has no
+         ids, and two sessions can't begin at the same instant). */
+      async function updateSession(forestId, startedAt, nextStartedAt, ms) {
+        if (!forestId || !(ms > 0)) return;
+        const log = await _loadLog(forestId);
+        const row = log.sessions.find((s) => (s.startedAt || 0) === startedAt);
+        if (!row) return;
+        ((row.startedAt = nextStartedAt || row.startedAt), (row.ms = ms));
+        log.sessions = _sortSessions(log.sessions);
+        await _persistLog(forestId, _retotal(log));
+      }
+
+      async function deleteSession(forestId, startedAt) {
+        if (!forestId) return;
+        const log = await _loadLog(forestId);
+        log.sessions = log.sessions.filter((s) => (s.startedAt || 0) !== startedAt);
+        await _persistLog(forestId, _retotal(log));
       }
 
       /* Returns the live total (banked sessionMs plus whatever stretch is
@@ -28012,6 +28022,7 @@
             totalMs: (prior.totalMs || 0) + _timeTrackState.sessionMs,
             lastSessionMs: _timeTrackState.sessionMs,
             lastSessionEndedAt: prior.lastSessionEndedAt || null,
+            untracked: prior.untracked || 0,
             sessions: Array.isArray(prior.sessions) ? prior.sessions : [],
           };
         }
@@ -28044,190 +28055,168 @@
         if (_timeTrackState.forestId) endSession(_timeTrackState.forestId);
       });
 
-      /* Returns just the elapsed active ms for THIS session (banked
-         sessionMs plus any currently-running stretch), for `forestId` —
-         used by the header timer badge, which shows time-on-this-visit
-         rather than the lifetime total that snapshot()/timeSpent.totalMs
-         track. Returns 0 for any forest that isn't the one currently
-         being timed (badge is only ever shown for _openForest anyway). */
-      function sessionElapsedMs(forestId) {
-        if (_timeTrackState.forestId !== forestId) return 0;
-        _rollActiveIntoSession();
-        return _timeTrackState.sessionMs;
-      }
-
-      /* Whether tracking is currently paused for `forestId` — used by the
-         header badge to choose its icon/label and by _togglePausedTimeTracking
-         to decide which way to flip. False for any forest that isn't the
-         one currently being timed, same convention as sessionElapsedMs. */
-      function isPaused(forestId) {
-        return _timeTrackState.forestId === forestId && _timeTrackState.paused;
-      }
-
-      /* Pauses or resumes tracking for the forest currently being timed —
-         the header badge's tap handler. Pausing rolls whatever stretch is
-         active into sessionMs and clears the idle timer, the same
-         bookkeeping _goIdle does, but sets .paused so _goActive won't
-         silently undo it on the next mousemove/scroll/etc. Resuming does
-         the reverse: clears .paused and goes active immediately (rather
-         than waiting for the next activity event), since tapping the
-         badge to resume is itself deliberate input. No-ops if no forest
-         is currently being timed at all. */
-      function _togglePausedTimeTracking(forestId) {
-        if (_timeTrackState.forestId !== forestId) return;
-        if (_timeTrackState.paused) {
-          _timeTrackState.paused = false;
-          _goActive();
-        } else {
-          _rollActiveIntoSession();
-          (clearTimeout(_timeTrackState.idleTimer), (_timeTrackState.idleTimer = null));
-          _timeTrackState.activeSince = null;
-          _timeTrackState.paused = true;
-        }
-        /* Fresh pause state either way — let the next pause stretch (if
-           any) earn its own paused-edit notice. See PAUSED-EDIT NOTICE
-           below for _ptnShownForThisPause. */
-        "undefined" != typeof _ptnShownForThisPause &&
-          (_ptnShownForThisPause = false);
-        "function" == typeof _refreshHdrTimer && _refreshHdrTimer();
-      }
-
       window.arborTimeTracking = {
         snapshot: snapshot,
         startSession: startSession,
         endSession: endSession,
         fmtDuration: fmtDuration,
-        sessionElapsedMs: sessionElapsedMs,
+        pause: pause,
+        resume: resume,
+        togglePause: togglePause,
         isPaused: isPaused,
-        togglePaused: _togglePausedTimeTracking,
+        isTracking: isTracking,
+        sessionElapsedMs: sessionElapsedMs,
+        liveSession: liveSession,
+        noteEdit: noteEdit,
+        setEditNotifier: setEditNotifier,
+        addSession: addSession,
+        updateSession: updateSession,
+        deleteSession: deleteSession,
+        onChange: onChange,
       };
+/**
+ * @module header/timer-badge
+ *
+ * The circular timer badge on the header title's bottom-right corner: the
+ * one always-visible readout of how long the open forest has been worked
+ * on this session, and the one-tap control for pausing and resuming that
+ * tracking.
+ *
+ * The badge shows whole elapsed active minutes. Past 99 minutes the count
+ * would no longer fit inside an 18px circle, so it becomes an hourglass
+ * (⏳) — at that point the exact figure matters less than the fact that
+ * it's been a long sitting, and the precise total is a tap away in the
+ * history sheet. While paused it shows a play glyph (▶), naming the action
+ * the next tap performs rather than the state it's in.
+ *
+ * Repaints are driven by window.arborTimeTracking's change events plus a
+ * slow interval, since a running clock crosses minute boundaries with no
+ * event to announce it. The interval is deliberately coarse: nothing here
+ * is worth waking the page up for more often.
+ *
+ * SCOPE
+ *   Runs in the shared global scope of the assembled application script.
+ *   Load position: 13.6 of 135 (between forest/time-tracking and
+ *   forest/paused-edit-notice). Order is defined by
+ *   src/scripts/manifest.json and is significant — see ARCHITECTURE.md
+ *   before moving this file.
+ *
+ * CONSUMES (declared in other modules)
+ *   window.arborTimeTracking
+ *
+ * DOM ELEMENTS (by id)
+ *   hdr-timer-badge
+ *
+ * SIDE EFFECTS
+ *   - registers DOM event listeners
+ *   - schedules timers
+ */
+      (function () {
+        const badge = document.getElementById("hdr-timer-badge");
+        if (!badge || !window.arborTimeTracking) return;
+        const tt = window.arborTimeTracking;
 
-      /* ─── HEADER TIMER BADGE ───────────────────────────────────────────
-         Small always-on-screen readout of this session's elapsed minutes,
-         at the logo's bottom-right corner (see #hdr-timer-wrap CSS).
-         Deliberately coarse — once a minute, not once a second — since a
-         ticking-every-second number in a persistent header is more
-         distracting than useful and costs needless re-renders/battery.
-         Past 99 minutes the two-digit slot swaps to an hourglass glyph
-         (see _HDR_TIMER_CAP) rather than truncating or wrapping. Doubles
-         as a pause/play control: tapping the number toggles tracking for
-         the open forest (see _togglePausedTimeTracking) — the badge was
-         already the one on-screen place showing this session's time, so
-         it's also the natural place to stop or restart it without
-         digging into a menu. */
-      const _HDR_TIMER_CAP = 99;
-      let _hdrTimerInterval = null;
+        /* Above this the count no longer fits the circle. */
+        const MAX_SHOWN_MINUTES = 99;
 
-      function _renderHdrTimer() {
-        const wrap = document.getElementById("hdr-timer-wrap");
-        const num = document.getElementById("hdr-timer-num");
-        if (!wrap || !num) return;
-        if (!_openForest || !_openForest.id) {
-          wrap.classList.add("hidden");
-          return;
+        function paint() {
+          if (!tt.isTracking()) {
+            badge.classList.add("hidden");
+            return;
+          }
+          badge.classList.remove("hidden");
+
+          const paused = tt.isPaused();
+          const mins = Math.floor(tt.sessionElapsedMs() / 60000);
+
+          badge.classList.toggle("paused", paused);
+          badge.textContent = paused
+            ? "▶"
+            : mins > MAX_SHOWN_MINUTES
+              ? "⏳"
+              : String(mins);
+          badge.setAttribute("aria-pressed", paused ? "false" : "true");
+          badge.title = paused
+            ? "Time tracking paused — tap to resume"
+            : "Tracking: " +
+              tt.fmtDuration(tt.sessionElapsedMs()) +
+              " this session — tap to pause";
         }
-        const paused = isPaused(_openForest.id);
-        const mins = Math.floor(sessionElapsedMs(_openForest.id) / 60000);
-        wrap.classList.remove("hidden");
-        wrap.classList.toggle("warm", mins >= 90 && !paused);
-        wrap.classList.toggle("paused", paused);
-        wrap.setAttribute("aria-hidden", "false");
-        wrap.setAttribute(
-          "aria-label",
-          paused
-            ? "Time tracking paused. Tap to resume."
-            : "Time tracking running. Tap to pause.",
-        );
-        if (paused) {
-          (wrap.classList.remove("cap"), (num.textContent = "▶"));
-        } else if (mins > _HDR_TIMER_CAP) {
-          (wrap.classList.add("cap"), (num.textContent = "⏳"));
-        } else {
-          (wrap.classList.remove("cap"), (num.textContent = String(mins)));
+
+        badge.addEventListener("click", (e) => {
+          /* The badge sits over the sync button's corner; without this
+             the same tap would also fire a save. */
+          (e.stopPropagation(), e.preventDefault(), tt.togglePause(), paint());
+        });
+
+        (tt.onChange(paint),
+          /* A minute ticking over produces no event of its own, so the
+             readout is refreshed on a slow timer as well. 15s keeps the
+             displayed minute at most a few seconds stale. */
+          setInterval(paint, 15000),
+          paint());
+      })();
+/**
+ * @module forest/paused-edit-notice
+ *
+ * The modal shown when a card or tree is edited while time tracking is
+ * paused. A paused tracker is silent by design, which is exactly what
+ * makes it a trap: the work still happens, and none of it is logged. The
+ * notice interrupts once per pause to offer the choice explicitly, rather
+ * than letting a whole working stretch disappear.
+ *
+ * Raised through window.arborTimeTracking's edit-notifier hook, which
+ * sync/file-sync's markUnsaved drives — that being the one place every
+ * card and tree edit already funnels through, so no individual edit path
+ * has to know this module exists.
+ *
+ * SCOPE
+ *   Runs in the shared global scope of the assembled application script.
+ *   Load position: 13.7 of 135 (between header/timer-badge and
+ *   forest/file-io). Order is defined by src/scripts/manifest.json and is
+ *   significant — see ARCHITECTURE.md before moving this file.
+ *
+ * CONSUMES (declared in other modules)
+ *   window.arborTimeTracking
+ *
+ * DOM ELEMENTS (by id)
+ *   timer-edit-keep, timer-edit-ov, timer-edit-start
+ *
+ * SIDE EFFECTS
+ *   - registers DOM event listeners
+ */
+      (function () {
+        const ov = document.getElementById("timer-edit-ov");
+        if (!ov || !window.arborTimeTracking) return;
+        const tt = window.arborTimeTracking;
+        const startBtn = document.getElementById("timer-edit-start");
+        const keepBtn = document.getElementById("timer-edit-keep");
+
+        function open() {
+          ov.classList.add("open");
         }
-        wrap.title = paused
-          ? "Paused · " + mins + (1 === mins ? " minute" : " minutes") + " this session — tap to resume"
-          : mins + (1 === mins ? " minute" : " minutes") + " this session — tap to pause";
-      }
 
-      /* Called by forest/state (open/close/switch) and forest/file-io
-         (initial boot load) right after _openForest changes, so the
-         badge reflects the new forest immediately instead of waiting up
-         to a minute for the next tick. Safe to call with no forest open —
-         _renderHdrTimer hides itself in that case. */
-      function _refreshHdrTimer() {
-        (_renderHdrTimer(),
-          clearInterval(_hdrTimerInterval),
-          (_hdrTimerInterval = _openForest
-            ? setInterval(_renderHdrTimer, 60000)
-            : null));
-      }
+        function close() {
+          ov.classList.remove("open");
+        }
 
-      document.addEventListener("visibilitychange", () => {
-        if ("visible" === document.visibilityState) _renderHdrTimer();
-      });
+        startBtn &&
+          startBtn.addEventListener("click", () => {
+            (tt.resume(), close());
+          });
+        keepBtn && keepBtn.addEventListener("click", close);
 
-      /* The badge is otherwise pointer-events:none (see #hdr-timer-wrap
-         CSS) so it doesn't intercept taps meant for the logo underneath
-         it; this listener is bound to the wrap directly and re-enables
-         pointer events only on the badge itself (see .clickable in CSS),
-         so the rest of the logo stays unaffected. No-ops harmlessly if
-         tapped while no forest is open, since togglePaused checks
-         forestId itself. */
-      document.getElementById("hdr-timer-wrap").addEventListener("click", (e) => {
-        e.stopPropagation();
-        if (_openForest && _openForest.id)
-          window.arborTimeTracking.togglePaused(_openForest.id);
-      });
+        /* Backdrop and Escape both mean "leave it paused" — the same
+             outcome as the explicit button, so neither is a trap. */
+        (ov.addEventListener("click", (e) => {
+          e.target === ov && close();
+        }),
+          document.addEventListener("keydown", (e) => {
+            "Escape" === e.key && ov.classList.contains("open") && close();
+          }));
 
-      /* ─── PAUSED-EDIT NOTICE ────────────────────────────────────────────
-         If the user edits the forest while tracking is paused (see
-         .paused above), that edit time isn't being counted. Rather than
-         let it pass silently, markUnsaved (sync/file-sync) calls
-         _maybeNotifyPausedEdit on every edit, which — the first time this
-         happens for the current pause stretch — shows a small blocking
-         popup (#ptn-ov) offering to resume tracking. Suppressed after the
-         first edit of a given pause stretch (_ptnShownForThisPause) so it
-         doesn't reappear on every keystroke; the flag is cleared whenever
-         pause state flips (either direction) so a fresh pause gets its
-         own single notice. */
-      let _ptnShownForThisPause = false;
-
-      function _openPausedEditNotice() {
-        const ov = document.getElementById("ptn-ov");
-        if (!ov) return;
-        (ov.classList.add("open"), pushOverlayState());
-      }
-
-      function _closePausedEditNotice() {
-        const ov = document.getElementById("ptn-ov");
-        ov && ov.classList.remove("open");
-      }
-
-      /* Called by markUnsaved right after any edit. No-ops unless a
-         session is open, currently paused, and this is the first edit
-         since that pause began. */
-      function _maybeNotifyPausedEdit() {
-        if (!_openForest || !_openForest.id) return;
-        if (!isPaused(_openForest.id)) return;
-        if (_ptnShownForThisPause) return;
-        _ptnShownForThisPause = true;
-        _openPausedEditNotice();
-      }
-
-      document.getElementById("ptn-start").addEventListener("click", () => {
-        (_closePausedEditNotice(),
-          _openForest &&
-            _openForest.id &&
-            window.arborTimeTracking.togglePaused(_openForest.id));
-      });
-      document.getElementById("ptn-keep").addEventListener("click", () => {
-        _closePausedEditNotice();
-      });
-
-      window.arborTimeTracking.notifyEditWhilePaused = _maybeNotifyPausedEdit;
-      window.arborTimeTracking.closePausedEditNotice = _closePausedEditNotice;
-
+        tt.setEditNotifier(open);
+      })();
 
       /* ─── Permission, requested against a real tap ─────────────────── */
 /**
@@ -28419,24 +28408,7 @@
           return;
         }
 
-        /* 1 — close out the outgoing forest's timed session FIRST — see
-               forest/time-tracking. saveCurrentForestSilently (below)
-               calls buildExportPayload → buildForestMeta → snapshot(),
-               which only includes a session in the file's sessions[]
-               array once that session has actually ended; saving before
-               ending it wrote a file whose sessions[] was missing
-               whatever stretch was still in progress, with nothing ever
-               re-saving the file afterward to pick up the completed
-               session. Ending the session first means the save below
-               (and the registry sync after it) both see the finished
-               totals. */
-        const outgoing = _openForest ? _openForest.id : null;
-        if (outgoing && window._stashUndoHistory)
-          _undoByForest[outgoing] = window._stashUndoHistory();
-        if (outgoing && window.arborTimeTracking)
-          await window.arborTimeTracking.endSession(outgoing);
-
-        /* 2 — save what's open, quietly. */
+        /* 1 — save what's open, quietly. */
         const saved = await saveCurrentForestSilently();
         if (!saved) {
           const label = _openForest ? _openForest.name : "the current forest";
@@ -28452,8 +28424,20 @@
             return;
         }
 
-        /* 3 — its registry entry reflects where it was left. */
+        /* 2 — its registry entry reflects where it was left. */
         _syncRegistryFromOpen();
+
+        /* 3 — park its undo history under its id before the stacks are
+               cleared by the load, and close out its timed session — see
+               forest/time-tracking — so the outgoing forest's elapsed
+               time is folded into its totals before applyParsedForest
+               (below, via _loadForestEntry) starts timing the incoming
+               one. */
+        const outgoing = _openForest ? _openForest.id : null;
+        if (outgoing && window._stashUndoHistory)
+          _undoByForest[outgoing] = window._stashUndoHistory();
+        if (outgoing && window.arborTimeTracking)
+          await window.arborTimeTracking.endSession(outgoing);
 
         /* 4 — load the new one and make it active. */
         const ok = await _loadForestEntry(entry);
@@ -28467,43 +28451,11 @@
         (_forestNote(""), closeArborNav(), renderForests());
       }
 
-      /* Small, fast, deterministic string hash (djb2 variant) — used only
-         to derive a stable-ish forest id for files that predate
-         forestMeta.id (see below). Not cryptographic; collisions are
-         acceptable here since the worst case is two differently-named
-         legacy files merging into one registry entry, which the user can
-         already recover from via rename. */
-      function _hashStr(s) {
-        let h = 5381;
-        for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
-        return (h >>> 0).toString(36);
-      }
-
       /* ─── Bringing a forest in from a file ─────────────────────────── */
       async function adoptForestFromFile(parsed, handle, fileName, opts) {
         opts = opts || {};
         const meta = parsed && parsed.forestMeta;
-        /* A file saved by this app always carries meta.id, and that's the
-           only truly stable identity there is — reuse it as-is.
-           A file with no forestMeta at all predates that schema. It has
-           no stable identity of its own, so without help here, every
-           single open of the same untouched file would mint a brand-new
-           random id (mkForestId()) and be treated as an unrelated forest:
-           no name ever carries over from a prior open (the fallback chain
-           in _adoptForestIdentity checks the *cached* registry entry for
-           this id, and a fresh random id was never cached before), no
-           session history accumulates, and the recent-forests list
-           quietly grows a fresh "Untitled Forest" row on every re-open.
-           A name derived from the file's own filename is stable across
-           opens of that same file (same name in, same id out), so it's
-           used as the identity anchor instead — the first save afterward
-           still stamps a real forestMeta.id, same as _ensureOpenForest
-           already does for the "no file at all" case above, so this only
-           ever matters for the file's opens prior to that first save. */
-        const legacyName = (fileName || (handle && handle.name) || "").trim();
-        const id =
-          (meta && meta.id) ||
-          (legacyName ? "fst-legacy-" + _hashStr(legacyName.toLowerCase()) : mkForestId());
+        const id = (meta && meta.id) || mkForestId();
         const fileModified = (meta && meta.lastModified) || 0;
 
         /* Re-importing a file for a forest already stored here: whichever
@@ -28561,18 +28513,6 @@
             }
             if (!parsed.forest || !Array.isArray(parsed.forest))
               return void err("That file isn't an Arbor forest.");
-            /* End the outgoing forest's timed session before saving it —
-               see forest/time-tracking and switchForest's own note.
-               Saving first would write a file missing whatever session
-               was still in progress, since buildForestMeta only folds a
-               session into the saved sessions[] once it has actually
-               ended. applyParsedForest (via adoptForestFromFile, below)
-               also ends the outgoing session itself, but only after
-               _openForest has already been reassigned to the incoming
-               forest — too late for this save to target the right one —
-               so it's ended explicitly here first. */
-            if (_openForest && window.arborTimeTracking)
-              await window.arborTimeTracking.endSession(_openForest.id);
             (await saveCurrentForestSilently(),
               _syncRegistryFromOpen(),
               await adoptForestFromFile(parsed, handle, handle.name));
@@ -28619,18 +28559,16 @@
  */
       async function createForest(name) {
         const clean = (name || "").trim() || "Untitled Forest";
-        if (_openForest && window._stashUndoHistory)
-          _undoByForest[_openForest.id] = window._stashUndoHistory();
-        /* Close out the outgoing forest's timed session BEFORE saving —
-           see forest/time-tracking. saveCurrentForestSilently reads the
-           live snapshot via buildForestMeta; saving first would write a
-           file missing whatever session was still in progress, with
-           nothing to re-save it afterward. Mirrors the same ordering
-           switchForest uses, for the same reason. */
-        if (_openForest && window.arborTimeTracking)
-          await window.arborTimeTracking.endSession(_openForest.id);
         await saveCurrentForestSilently();
         _syncRegistryFromOpen();
+        if (_openForest && window._stashUndoHistory)
+          _undoByForest[_openForest.id] = window._stashUndoHistory();
+        /* Close out the outgoing forest's timed session — see
+           forest/time-tracking — before the new forest takes over
+           _openForest below. Mirrors the same ordering switchForest
+           uses. */
+        if (_openForest && window.arborTimeTracking)
+          await window.arborTimeTracking.endSession(_openForest.id);
 
         ((_uid = 0),
           (forest = [mkTree("Untitled Tree")]),
@@ -28657,14 +28595,6 @@
         _lastFileHandle = null;
         _migrateForestSchema();
         touchRecent(activeId);
-        /* Registry entry for the new forest has to exist before
-           startSession below — same ordering constraint as
-           applyParsedForest and the boot-time call in
-           state/forest-state. Without it, endSession's _regPatch and the
-           History sheet's _regEntry lookup find no entry to write/read,
-           and the launch screen's recent list falls back to "Untitled
-           Forest" for the row it does create. */
-        _syncRegistryFromOpen();
         /* Start timing the new forest right away — a freshly created
            forest is itself the result of user input, so there's no
            "waiting for the next visibilitychange" gap here. */
@@ -29051,472 +28981,208 @@
  *
  * DECLARES (functions, globally reachable)
  *   sheetForestActions, sheetForestRename, sheetForestRemove,
- *   sheetForestSessionHistory, _fmtSessionOpened, _renderSessForm,
- *   _confirmDeleteSession, _writeSessionsForForest
- *
- * DECLARES (state bindings, globally reachable)
- *   _sessHistUi
+ *   sheetForestHistory, _renderSessionHistory, _fmtSessionOpened,
+ *   _toLocalInput, _fromLocalInput
  *
  * CONSUMES (declared in other modules)
- *   _HAS_FSA, MIN_LOGGED_SESSION_MS, _openForest, _regEntry, _regPatch,
- *   _readForestTimeLog, _storeForestTimeLog, closeSheet, duplicateForest,
- *   exportForest, openSheet, removeForest, renameForest, renderForests,
- *   renderSheet, sheetBack, sheetItem, window.arborTimeTracking
+ *   _HAS_FSA, _openForest, _regEntry, closeSheet, duplicateForest,
+ *   exportForest, openSheet, removeForest, renameForest, renderSheet,
+ *   sheetBack, sheetItem, window.arborTimeTracking
  *
  * SIDE EFFECTS
  *   - registers DOM event listeners
+ *   - reads/writes IndexedDB
+ *   - reads/writes localStorage
  *   - schedules timers
- *   - reads/writes IndexedDB (via _readForestTimeLog/_storeForestTimeLog)
- *   - writes localStorage (via _regPatch)
  */
-      /* Full-sheet session history — opened via the "History" button on
-         forestActions (openSheet("forestSessionHistory", {forestId})).
-         Was previously inlined directly into forestActions; moved to its
-         own pushed sheet so the actions list stays short and the history
-         gets the whole scrollable sheet body to itself instead of a
-         capped inner frame. Reads the live tracker for the forest
-         currently open (same reasoning as renderForests' "This session"
-         line: the in-progress session hasn't been folded into
-         entry.timeSpent yet) and falls back to the cached log for every
-         other forest. Newest session first. */
-      /* Sheet-local UI state for the History sheet: whether the "Add a
-         session" form is open, and whether rows are showing their delete
-         (✕) control. Kept outside the render function since renderSheet
-         tears down and rebuilds the body on every call — reset whenever a
-         *different* forest's history is opened so leaving and coming back
-         doesn't carry stale state, but preserved across the sheet's own
-         internal re-renders (add/delete) so those actions don't collapse
-         the UI the user is mid-way through. */
-      let _sessHistUi = { forestId: null, adding: false, editingMode: false, editingSession: null };
-      let _sessHistLiveTimer = null;
+      /* Opening date + duration of every tracked session, in a capped
+         scrollable frame — see .a-sess-list. Reads the live tracker for
+         the forest currently open (same reasoning as renderForests'
+         "This session" line: the in-progress session hasn't been folded
+         into entry.timeSpent yet) and falls back to the cached log for
+         every other forest. Newest session first, with the in-progress
+         session — if this is the open forest — pinned above the stored
+         rows and marked live, since it isn't history yet.
 
-      /* Writes an edited sessions[] array back to a forest's time log —
-         the same three targets endSession's own write touches, so a
-         manual add/edit is indistinguishable from a tracked session once
-         saved: _openForest.timeSpent (live in-memory forest, if this is
-         the one currently open), the registry cache (so the Forests tab
-         total updates immediately), and the IndexedDB fallback (so it
-         survives even without an explicit file re-save). totalMs is
-         recomputed from the sessions actually kept rather than adjusted
-         by a delta, since callers may add, edit, or remove more than one
-         entry's worth of ms in a single edit. */
-      async function _writeSessionsForForest(forestId, sessions) {
-        const entry = _regEntry(forestId);
-        const isCurrent = !!(_openForest && _openForest.id === forestId);
-        const prior =
-          (isCurrent && _openForest.timeSpent) ||
-          (entry && entry.timeSpent) ||
-          (await _readForestTimeLog(forestId)) ||
-          { totalMs: 0, sessions: [] };
+         Every row can be edited or deleted, and new ones added by hand,
+         for work the tracker didn't see: sessions before this device ever
+         opened the forest, or a stretch spent reading on paper. Edits go
+         through window.arborTimeTracking so the totals, the IndexedDB
+         fallback and the registry cache all move together. */
+      function _renderSessionHistory(body, entry) {
+        const tt = window.arborTimeTracking;
+        const isCurrent = !!(_openForest && entry.id === _openForest.id);
+        const liveLog = isCurrent && tt ? tt.snapshot(entry.id) : null;
+        const timeLog = liveLog || entry.timeSpent;
+        const sessions = (timeLog && Array.isArray(timeLog.sessions)) ? timeLog.sessions : [];
+        const live = isCurrent && tt && tt.liveSession ? tt.liveSession(entry.id) : null;
 
-        const sortedSessions = sessions
+        const list = document.createElement("div");
+        list.className = "a-sess-list";
+
+        /* Re-renders the whole sheet frame rather than patching rows:
+           an edit moves totals and can re-sort the list, so a partial
+           repaint would leave the rest of the view disagreeing with it. */
+        function refresh() {
+          renderSheet();
+        }
+
+        /* Shared by "add" and "edit": a datetime-local for when the
+           session began and a plain minutes field for how long it ran,
+           which between them are the only two things a session is. */
+        function buildForm(opts) {
+          const form = document.createElement("div");
+          form.className = "a-sess-form";
+
+          const when = document.createElement("input");
+          ((when.type = "datetime-local"),
+            (when.value = _toLocalInput(opts.startedAt || Date.now())));
+
+          const mins = document.createElement("input");
+          ((mins.type = "number"),
+            (mins.min = "1"),
+            (mins.step = "1"),
+            (mins.placeholder = "Minutes"),
+            (mins.value = opts.ms ? String(Math.max(1, Math.round(opts.ms / 60000))) : ""));
+
+          const row = document.createElement("div");
+          row.className = "a-sess-form-row";
+          const cancel = document.createElement("button");
+          ((cancel.type = "button"),
+            (cancel.textContent = "Cancel"),
+            cancel.addEventListener("click", refresh));
+          const save = document.createElement("button");
+          ((save.type = "button"),
+            (save.className = "primary"),
+            (save.textContent = "Save"),
+            save.addEventListener("click", async () => {
+              const m = parseInt(mins.value, 10);
+              if (!(m > 0)) return mins.focus();
+              const at = _fromLocalInput(when.value);
+              (await opts.onSave(at, m * 60000), refresh());
+            }));
+
+          (row.append(cancel, save),
+            form.append(when, mins, row),
+            [when, mins].forEach((el) =>
+              el.addEventListener("keydown", (ev) => ev.stopPropagation()),
+            ));
+          return form;
+        }
+
+        /* The in-progress session, shown but not editable: it has no
+           stored row to edit yet, and its length is still moving. */
+        if (live && live.ms > 0) {
+          const row = document.createElement("div");
+          row.className = "a-sess-row live";
+
+          const date = document.createElement("span");
+          ((date.className = "a-sess-date"),
+            (date.textContent =
+              (live.paused ? "Paused · " : "In progress · ") +
+              _fmtSessionOpened(live.startedAt)),
+            (date.title = new Date(live.startedAt || 0).toString()));
+
+          const dur = document.createElement("span");
+          ((dur.className = "a-sess-dur"),
+            (dur.textContent = tt ? tt.fmtDuration(live.ms) : ""));
+
+          (row.append(date, dur), list.appendChild(row));
+        }
+
+        if (!sessions.length && !(live && live.ms > 0)) {
+          const empty = document.createElement("div");
+          ((empty.className = "a-sess-empty"),
+            (empty.textContent = "No sessions tracked yet."),
+            list.appendChild(empty));
+        }
+
+        sessions
           .slice()
-          .sort((a, b) => (a.startedAt || 0) - (b.startedAt || 0))
-          .slice(-100);
+          .reverse()
+          .forEach((s) => {
+            const row = document.createElement("div");
+            row.className = "a-sess-row";
 
-        const trackedMs = sortedSessions.reduce((sum, s) => sum + (s.ms || 0), 0);
-        /* totalMs also carries time from short (<5min) sessions that never
-           get a row of their own — preserve whatever of that untracked
-           remainder still applies rather than dropping it on every edit. */
-        const untrackedRemainder = Math.max(
-          0,
-          (prior.totalMs || 0) - (Array.isArray(prior.sessions)
-            ? prior.sessions.reduce((sum, s) => sum + (s && s.ms || 0), 0)
-            : 0),
-        );
+            const date = document.createElement("span");
+            ((date.className = "a-sess-date"),
+              (date.textContent = _fmtSessionOpened(s.startedAt)),
+              (date.title = new Date(s.startedAt || 0).toString()));
 
-        const log = {
-          totalMs: trackedMs + untrackedRemainder,
-          lastSessionMs: prior.lastSessionMs || 0,
-          lastSessionEndedAt: prior.lastSessionEndedAt || null,
-          sessions: sortedSessions,
-        };
+            const dur = document.createElement("span");
+            ((dur.className = "a-sess-dur"),
+              (dur.textContent = tt ? tt.fmtDuration(s.ms) : ""));
 
-        if (isCurrent) _openForest.timeSpent = log;
-        try {
-          await _storeForestTimeLog(forestId, log);
-        } catch (e) {}
-        if ("function" == typeof _regPatch) _regPatch(forestId, { timeSpent: log });
-        "function" == typeof renderForests && renderForests();
-        return log;
+            const actions = document.createElement("div");
+            actions.className = "a-sess-actions";
+
+            const edit = document.createElement("button");
+            ((edit.type = "button"),
+              (edit.className = "a-sess-btn"),
+              (edit.textContent = "✎"),
+              (edit.title = "Edit this session"),
+              edit.addEventListener("click", () => {
+                list.replaceChild(
+                  buildForm({
+                    startedAt: s.startedAt,
+                    ms: s.ms,
+                    onSave: (at, ms) =>
+                      tt.updateSession(entry.id, s.startedAt || 0, at, ms),
+                  }),
+                  row,
+                );
+              }));
+
+            const del = document.createElement("button");
+            ((del.type = "button"),
+              (del.className = "a-sess-btn danger"),
+              (del.textContent = "🗑"),
+              (del.title = "Delete this session"),
+              del.addEventListener("click", async () => {
+                (await tt.deleteSession(entry.id, s.startedAt || 0), refresh());
+              }));
+
+            (actions.append(edit, del),
+              row.append(date, dur, actions),
+              list.appendChild(row));
+          });
+
+        body.appendChild(list);
+
+        sheetItem(body, "＋", "Add a session", "Log time the tracker missed", () => {
+          const form = buildForm({
+            startedAt: Date.now(),
+            ms: 0,
+            onSave: (at, ms) => tt.addSession(entry.id, at, ms),
+          });
+          (list.insertBefore(form, list.firstChild), form.querySelector("input").focus());
+        });
       }
 
-      function sheetForestSessionHistory(body, title, ctx) {
+      /* The forest's whole tracked history, its own sheet rather than a
+         block inside the actions sheet: with per-row editing it needs the
+         room, and the actions themselves shouldn't be pushed below a long
+         list to reach. */
+      function sheetForestHistory(body, title, ctx) {
         const entry = _regEntry(ctx.forestId);
         if (!entry) return sheetBack();
         title.textContent = "History";
 
-        if (_sessHistUi.forestId !== entry.id)
-          _sessHistUi = { forestId: entry.id, adding: false, editingMode: false, editingSession: null };
-
-        /* Keeps the "In progress" row's duration climbing while this
-           sheet is open, rather than freezing at whatever it read on
-           open — same 60s cadence the header badge uses (_refreshHdrTimer
-           above), just scoped to re-rendering this one sheet instead of
-           the badge. Cleared the moment a different sheet frame takes
-           over, so it never re-renders content that's no longer on
-           screen. */
-        clearInterval(_sessHistLiveTimer);
-        _sessHistLiveTimer = setInterval(() => {
-          const top = _sheetStack[_sheetStack.length - 1];
-          top && "forestSessionHistory" === top.mode && top.ctx.forestId === entry.id
-            ? renderSheet()
-            : clearInterval(_sessHistLiveTimer);
-        }, 60000);
-
+        const tt = window.arborTimeTracking;
         const isCurrent = !!(_openForest && entry.id === _openForest.id);
-        const liveLog = isCurrent && window.arborTimeTracking
-          ? window.arborTimeTracking.snapshot(entry.id)
-          : null;
-        const timeLog = liveLog || entry.timeSpent;
-        /* Filtered here too, not just at write-time in endSession — a
-           forest file saved by an earlier build (before this threshold
-           existed) can still have short sessions sitting in its JSON, and
-           there's no migration step that rewrites old saves. Filtering on
-           read means those never show up in the list, without touching
-           the underlying data (which still counts toward totalMs). */
-        const sessions = (timeLog && Array.isArray(timeLog.sessions))
-          ? timeLog.sessions.filter((s) => (s && s.ms || 0) >= MIN_LOGGED_SESSION_MS)
-          : [];
-
-        /* The session in progress right now, if any, never appears in
-           sessions[] above — snapshot() only ever reports *completed*
-           stretches, and this one only becomes "completed" (with a real
-           startedAt/ms row) once the forest is switched away from or the
-           tab closes, via endSession. Without a live row here, a long
-           open session is fully invisible in History the entire time
-           it's running — totalMs quietly climbs in the background but
-           nothing in this list reflects it, which reads as "tracking
-           isn't working" even though it is. Surfaced separately from
-           `sessions` (not spliced in) since it has no stable startedAt/id
-           yet and needs to keep re-rendering as time passes. */
-        const liveMs =
-          isCurrent && window.arborTimeTracking
-            ? window.arborTimeTracking.sessionElapsedMs(entry.id)
-            : 0;
-        const livePaused =
-          isCurrent && window.arborTimeTracking && window.arborTimeTracking.isPaused(entry.id);
-        const showLiveRow = liveMs >= MIN_LOGGED_SESSION_MS;
+        const timeLog =
+          (isCurrent && tt ? tt.snapshot(entry.id) : null) || entry.timeSpent;
 
         const note = document.createElement("div");
-        const totalCount = sessions.length + (showLiveRow ? 1 : 0);
         ((note.className = "a-sheet-note"),
           (note.textContent =
             (entry.name || "Untitled Forest") +
-            " · " +
-            totalCount +
-            (1 === totalCount ? " session" : " sessions")),
+            (timeLog && timeLog.totalMs && tt
+              ? " · " + tt.fmtDuration(timeLog.totalMs) + " tracked in total"
+              : " · no time tracked yet")),
           body.appendChild(note));
 
-        /* Editing an existing (manually-added) session reuses the same
-           form as adding a new one, pre-filled and saving in place — see
-           _renderSessForm. Add and edit-a-specific-row are mutually
-           exclusive so only one form is ever open at a time. */
-        if (_sessHistUi.adding) _renderSessForm(body, entry, null);
-        else if (_sessHistUi.editingSession)
-          _renderSessForm(body, entry, _sessHistUi.editingSession);
-
-        const list = document.createElement("div");
-        list.className = "a-sess-list a-sess-list-full";
-
-        if (showLiveRow) {
-          const row = document.createElement("div");
-          row.className = "a-sess-row a-sess-row-live";
-
-          const date = document.createElement("span");
-          ((date.className = "a-sess-date"),
-            (date.textContent = livePaused ? "In progress — paused" : "In progress"));
-          row.appendChild(date);
-
-          const dot = document.createElement("span");
-          ((dot.className = "a-sess-live-dot"),
-            livePaused && (dot.style.background = "#b08840"));
-          row.appendChild(dot);
-
-          const dur = document.createElement("span");
-          ((dur.className = "a-sess-dur"),
-            (dur.textContent = window.arborTimeTracking
-              ? window.arborTimeTracking.fmtDuration(liveMs)
-              : ""));
-          row.appendChild(dur);
-
-          list.appendChild(row);
-        }
-
-        if (!sessions.length && !showLiveRow) {
-          const empty = document.createElement("div");
-          ((empty.className = "a-sess-empty"),
-            (empty.textContent =
-              "No sessions tracked yet." +
-              (isCurrent
-                ? " Sessions under 5 minutes aren't logged individually — this visit will show up here once it passes that."
-                : "")),
-            list.appendChild(empty));
-        } else {
-          sessions
-            .slice()
-            .reverse()
-            .forEach((s) => {
-              const row = document.createElement("div");
-              row.className = "a-sess-row";
-
-              const date = document.createElement("span");
-              ((date.className = "a-sess-date"),
-                (date.textContent = _fmtSessionOpened(s.startedAt)),
-                (date.title = new Date(s.startedAt || 0).toString()));
-
-              row.appendChild(date);
-
-              /* Manual-vs-tracked distinguisher — see .a-sess-badge.
-                 Tracked (automatically timed) sessions get no badge at
-                 all, so the mark only ever calls out the sessions the
-                 user added by hand. */
-              if (s.manual) {
-                const badge = document.createElement("span");
-                ((badge.className = "a-sess-badge"),
-                  (badge.textContent = "Manual"),
-                  row.appendChild(badge));
-              }
-
-              const dur = document.createElement("span");
-              ((dur.className = "a-sess-dur"),
-                (dur.textContent = window.arborTimeTracking
-                  ? window.arborTimeTracking.fmtDuration(s.ms)
-                  : ""));
-              row.appendChild(dur);
-
-              if (_sessHistUi.editingMode) {
-                const actions = document.createElement("span");
-                actions.className = "a-sess-row-actions";
-
-                /* Editing only makes sense for manually-entered sessions
-                   — an automatically-tracked one has no "intended" values
-                   to correct, it's simply what was measured, so its
-                   pencil stays disabled rather than hidden (keeps the two
-                   rows' actions visually aligned in the list). */
-                const pencil = document.createElement("button");
-                ((pencil.type = "button"),
-                  (pencil.className = "a-sess-row-pencil"),
-                  (pencil.textContent = "✎"),
-                  (pencil.setAttribute(
-                    "aria-label",
-                    s.manual ? "Edit this session" : "Only manually-added sessions can be edited",
-                  )));
-                if (!s.manual) pencil.disabled = true;
-                else
-                  pencil.addEventListener("click", () => {
-                    ((_sessHistUi.editingSession = s), (_sessHistUi.adding = false), renderSheet());
-                  });
-                actions.appendChild(pencil);
-
-                const del = document.createElement("button");
-                ((del.type = "button"),
-                  (del.className = "a-sess-row-x"),
-                  (del.setAttribute("aria-label", "Delete this session")),
-                  (del.textContent = "✕"),
-                  del.addEventListener("click", () =>
-                    _confirmDeleteSession(entry.id, s),
-                  ));
-                actions.appendChild(del);
-
-                row.appendChild(actions);
-              }
-
-              list.appendChild(row);
-            });
-        }
-
-        body.appendChild(list);
-
-        const foot = document.createElement("div");
-        foot.className = "a-sess-foot";
-
-        const addBtn = document.createElement("button");
-        ((addBtn.type = "button"),
-          (addBtn.className = "a-sess-foot-btn"),
-          (addBtn.innerHTML = "📅 " + (_sessHistUi.adding ? "Cancel" : "Add")),
-          addBtn.addEventListener("click", () => {
-            ((_sessHistUi.adding = !_sessHistUi.adding),
-              (_sessHistUi.editingMode = false),
-              (_sessHistUi.editingSession = null),
-              renderSheet());
-          }));
-
-        const editBtn = document.createElement("button");
-        ((editBtn.type = "button"),
-          (editBtn.className =
-            "a-sess-foot-btn a-sess-foot-edit" + (_sessHistUi.editingMode ? " active" : "")),
-          (editBtn.innerHTML = "✎ " + (_sessHistUi.editingMode ? "Done" : "Edit")));
-        if (!sessions.length && !_sessHistUi.editingMode) editBtn.disabled = true;
-        editBtn.addEventListener("click", () => {
-          ((_sessHistUi.editingMode = !_sessHistUi.editingMode),
-            (_sessHistUi.adding = false),
-            (_sessHistUi.editingSession = null),
-            renderSheet());
-        });
-
-        (foot.append(addBtn, editBtn), body.appendChild(foot));
-      }
-
-      /* Inline "Add / Edit a session" form — date + time it started, plus
-         a duration in minutes. Appended above the list rather than opened
-         as its own pushed sheet, since it only needs three fields and
-         keeping it in place means the list right below stays visible for
-         reference while filling it in. Reuses the same date/time input
-         pair and styling as the journal event-time editor (shine-meta-edit-*)
-         for visual consistency with the app's other manual date/time entry.
-         `editing` is null when adding a brand-new session, or the session
-         object itself (always one with .manual === true — callers never
-         route a tracked session here, see the pencil's disabled state
-         above) when editing one in place. */
-      function _renderSessForm(body, entry, editing) {
-        const pad = (n) => String(n).padStart(2, "0");
-        const base = editing ? new Date(editing.startedAt) : new Date();
-        const defDate = base.getFullYear() + "-" + pad(base.getMonth() + 1) + "-" + pad(base.getDate());
-        const defTime = pad(base.getHours()) + ":" + pad(base.getMinutes());
-        const defMins = editing ? Math.round((editing.ms || 0) / 60000) : "";
-
-        const form = document.createElement("div");
-        form.className = "a-sess-form";
-
-        const row = document.createElement("div");
-        row.className = "a-sess-form-row";
-
-        const dateField = document.createElement("div");
-        dateField.className = "shine-meta-edit-field";
-        const dateLbl = document.createElement("label");
-        ((dateLbl.className = "shine-meta-edit-label"), (dateLbl.textContent = "Date"));
-        const dateInput = document.createElement("input");
-        ((dateInput.type = "date"),
-          (dateInput.className = "shine-meta-edit-input"),
-          (dateInput.value = defDate),
-          (dateInput.autocomplete = "off"));
-        (dateField.append(dateLbl, dateInput));
-
-        const timeField = document.createElement("div");
-        timeField.className = "shine-meta-edit-field";
-        const timeLbl = document.createElement("label");
-        ((timeLbl.className = "shine-meta-edit-label"), (timeLbl.textContent = "Started at"));
-        const timeInput = document.createElement("input");
-        ((timeInput.type = "time"),
-          (timeInput.className = "shine-meta-edit-input"),
-          (timeInput.value = defTime),
-          (timeInput.autocomplete = "off"));
-        (timeField.append(timeLbl, timeInput));
-
-        (row.append(dateField, timeField), form.appendChild(row));
-
-        const durField = document.createElement("div");
-        durField.className = "shine-meta-edit-field";
-        const durLbl = document.createElement("label");
-        ((durLbl.className = "shine-meta-edit-label"), (durLbl.textContent = "Duration (minutes)"));
-        const durInput = document.createElement("input");
-        ((durInput.type = "number"),
-          (durInput.className = "shine-meta-edit-input"),
-          (durInput.min = "1"),
-          (durInput.step = "1"),
-          (durInput.placeholder = "e.g. 25"),
-          (durInput.inputMode = "numeric"),
-          (durInput.value = defMins));
-        (durField.append(durLbl, durInput), form.appendChild(durField));
-
-        const err = document.createElement("div");
-        err.className = "a-sess-form-err";
-        form.appendChild(err);
-
-        const actions = document.createElement("div");
-        actions.className = "shine-meta-edit-actions";
-
-        const saveBtn = document.createElement("button");
-        ((saveBtn.type = "button"),
-          (saveBtn.className = "shine-meta-btn"),
-          (saveBtn.textContent = editing ? "Save changes" : "Save session"));
-
-        const cancelBtn = document.createElement("button");
-        ((cancelBtn.type = "button"),
-          (cancelBtn.className = "shine-meta-btn"),
-          (cancelBtn.textContent = "Cancel"),
-          cancelBtn.addEventListener("click", () => {
-            ((_sessHistUi.adding = false), (_sessHistUi.editingSession = null), renderSheet());
-          }));
-
-        saveBtn.addEventListener("click", async () => {
-          const dateVal = dateInput.value;
-          const timeVal = timeInput.value || "00:00";
-          const mins = parseFloat(durInput.value);
-
-          if (!dateVal) {
-            ((err.textContent = "Pick a date."), err.classList.add("show"));
-            return;
-          }
-          if (!mins || mins <= 0) {
-            ((err.textContent = "Enter a duration greater than 0."), err.classList.add("show"));
-            return;
-          }
-
-          const startedAt = new Date(dateVal + "T" + timeVal + ":00").getTime();
-          if (isNaN(startedAt)) {
-            ((err.textContent = "That date/time isn't valid."), err.classList.add("show"));
-            return;
-          }
-          if (startedAt > Date.now()) {
-            ((err.textContent = "That's in the future — pick an earlier time."),
-              err.classList.add("show"));
-            return;
-          }
-
-          const ms = Math.round(mins * 60000);
-          err.classList.remove("show");
-          saveBtn.disabled = true;
-
-          const isCurrent = !!(_openForest && entry.id === _openForest.id);
-          const liveLog = isCurrent && window.arborTimeTracking
-            ? window.arborTimeTracking.snapshot(entry.id)
-            : null;
-          const timeLog = liveLog || entry.timeSpent || { sessions: [] };
-          const priorSessions = Array.isArray(timeLog.sessions) ? timeLog.sessions : [];
-
-          const nextSessions = editing
-            ? priorSessions.map((s) => (s === editing ? { startedAt: startedAt, ms: ms, manual: true } : s))
-            : priorSessions.concat([{ startedAt: startedAt, ms: ms, manual: true }]);
-
-          await _writeSessionsForForest(entry.id, nextSessions);
-
-          ((_sessHistUi.adding = false), (_sessHistUi.editingSession = null), renderSheet());
-        });
-
-        (actions.append(saveBtn, cancelBtn), form.appendChild(actions));
-        body.appendChild(form);
-      }
-
-      /* Confirms and then removes a single manually- or automatically-
-         tracked session. Deliberately not sheetConfirm (used elsewhere for
-         forest/tree removal): that helper's "yes" always ends by calling
-         closeSheet() and collapsing the whole sheet stack, which would
-         drop the user back out at the Forests list instead of leaving
-         them in History able to delete another session. This stays a
-         plain confirm() instead — a native, blocking, unmissable prompt
-         that's appropriate for a destructive one-off action here. */
-      async function _confirmDeleteSession(forestId, session) {
-        const when = _fmtSessionOpened(session.startedAt);
-        const dur = window.arborTimeTracking
-          ? window.arborTimeTracking.fmtDuration(session.ms)
-          : "";
-        if (!window.confirm("Delete this session?\n" + when + " · " + dur))
-          return;
-
-        const entry = _regEntry(forestId);
-        const isCurrent = !!(_openForest && _openForest.id === forestId);
-        const liveLog = isCurrent && window.arborTimeTracking
-          ? window.arborTimeTracking.snapshot(forestId)
-          : null;
-        const timeLog = liveLog || (entry && entry.timeSpent) || { sessions: [] };
-        const remaining = (Array.isArray(timeLog.sessions) ? timeLog.sessions : []).filter(
-          (s) => s !== session && (s.startedAt !== session.startedAt || s.ms !== session.ms),
-        );
-        await _writeSessionsForForest(forestId, remaining);
-        if (_sessHistUi.editingSession === session) _sessHistUi.editingSession = null;
-        renderSheet();
+        _renderSessionHistory(body, entry);
       }
 
       /* "Mon D, YYYY · h:mm AM/PM" — the sessions list needs the actual
@@ -29541,6 +29207,27 @@
         );
       }
 
+      /* <input type="datetime-local"> speaks local wall-clock time with no
+         zone attached, while sessions are stored as epoch ms. toISOString
+         can't be used for the outbound half — it converts to UTC, which
+         would show a session opened at 9am as some other hour. Offsetting
+         first makes the ISO string read as local time instead. */
+      function _toLocalInput(ts) {
+        const d = new Date(ts || Date.now());
+        if (isNaN(d)) return "";
+        return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+          .toISOString()
+          .slice(0, 16);
+      }
+
+      /* Inbound, `new Date("YYYY-MM-DDTHH:MM")` is already interpreted as
+         local time by every browser, so no offset is needed here. Falls
+         back to now for a cleared or unparseable field. */
+      function _fromLocalInput(v) {
+        const t = v ? new Date(v).getTime() : NaN;
+        return isNaN(t) ? Date.now() : t;
+      }
+
       function sheetForestActions(body, title, ctx) {
         const entry = _regEntry(ctx.forestId);
         if (!entry) return sheetBack();
@@ -29558,8 +29245,27 @@
             (entry.fileName ? " · " + entry.fileName : "")),
           body.appendChild(note));
 
-        (sheetItem(body, "🕘", "History", "Every session and how long it lasted", () =>
-          openSheet("forestSessionHistory", { forestId: entry.id }),
+        /* Time tracked, as a line rather than the full list — the
+           sessions themselves live one level deeper so a forest with a
+           long history doesn't push these actions out of reach. */
+        const tt = window.arborTimeTracking;
+        const isCurrent = !!(_openForest && entry.id === _openForest.id);
+        const timeLog =
+          (isCurrent && tt ? tt.snapshot(entry.id) : null) || entry.timeSpent;
+        const sessionCount =
+          timeLog && Array.isArray(timeLog.sessions) ? timeLog.sessions.length : 0;
+
+        (sheetItem(
+          body,
+          "🕘",
+          "History",
+          timeLog && timeLog.totalMs && tt
+            ? tt.fmtDuration(timeLog.totalMs) +
+                " tracked · " +
+                sessionCount +
+                (1 === sessionCount ? " session" : " sessions")
+            : "No time tracked yet",
+          () => openSheet("forestHistory", { forestId: entry.id }),
         ),
           sheetItem(body, "✎", "Rename", "The name travels inside the file", () =>
             openSheet("forestRename", { forestId: entry.id }),
@@ -30188,33 +29894,15 @@
       _migrateForestSchema();
       /* Every other entry into a forest (import, switch, create) runs
          through applyParsedForest/createForest, both of which mint an
-         identity, sync a registry entry for it, and start a timed
-         session — see forest/identity, forest/registry-sync and
+         identity and start a timed session — see forest/identity and
          forest/time-tracking. The very first forest of a fresh page load
          (the intro forest, or whatever lsLoad() just restored from the
          crash backstop) never passes through either, so it needs the
-         same calls made explicitly here at boot. _ensureOpenForest picks
-         up _lsCacheForestId if lsLoad() set one, so a restored forest
-         keeps its existing identity and time totals rather than minting
-         a fresh id.
-         _syncRegistryFromOpen() has to run before startSession(): without
-         a registry entry yet, endSession's _regPatch (and the History
-         sheet's _regEntry lookup) find nothing to write/read, so a
-         session that ends before the first explicit save — the user
-         just looks around for a few minutes, then switches forests or
-         closes the tab — never makes it into the registry and silently
-         never shows up in History. */
+         same two calls made explicitly here at boot. _ensureOpenForest
+         picks up _lsCacheForestId if lsLoad() set one, so a restored
+         forest keeps its existing identity and time totals rather than
+         minting a fresh id. */
       _ensureOpenForest();
-      /* Refresh an existing row only — never create one here. A forest
-         that already has a registry entry (anything created, opened or
-         restored) gets its entry kept current so endSession has
-         something to write into. A first-run intro forest has no entry
-         yet, and minting one at boot added a fresh "Untitled Forest" row
-         on every load that didn't restore a crash cache; it gets its
-         entry the normal way instead, from the first save, create,
-         rename or open. reg.activeId is left pointing at whatever was
-         genuinely last active rather than at a row that doesn't exist. */
-      if (_regEntry(_openForest.id)) _syncRegistryFromOpen();
       window.arborTimeTracking && window.arborTimeTracking.startSession(_openForest.id);
       const aTree = () => forest.find((e) => e.id === activeId) || forest[0];
       let recentIds = forest
@@ -46965,14 +46653,11 @@
  *   LS_KEY, _HAS_FSA, _forestFileNameGuess, _forestId, _forestNote,
  *   _forestPermission, _rememberForestHandle, _scheduleForestAutosave,
  *   _storeForestContent, _syncRegistryFromOpen, _touchOpenForest,
- *   buildExportPayload, lsSave, remove, renderForests
+ *   buildExportPayload, lsSave, remove, renderForests,
+ *   window.arborTimeTracking
  *
  * DOM ELEMENTS (by id)
  *   hdr-sync-btn, hdr-sync-dot, import-reminder
-
- * Also calls into window.arborTimeTracking.notifyEditWhilePaused
- * (forest/time-tracking) on every edit, to surface the paused-tracking
- * notice — see that module's PAUSED-EDIT NOTICE section.
  *
  * SIDE EFFECTS
  *   - reads/writes localStorage
@@ -46988,15 +46673,15 @@
           /* On browsers without the File System Access API there is no
              file to write through to, so IndexedDB is the live copy and
              has to keep up with edits, not just explicit saves. */
-          _scheduleForestAutosave(),
-          /* Every edit runs through here, so this is also the single
-             chokepoint for surfacing forest/time-tracking's paused-edit
-             notice — see _maybeNotifyPausedEdit. No-ops when tracking
-             isn't paused or the notice has already been shown for this
-             pause stretch. */
-          window.arborTimeTracking &&
-            window.arborTimeTracking.notifyEditWhilePaused &&
-            window.arborTimeTracking.notifyEditWhilePaused());
+          _scheduleForestAutosave());
+        /* Every card and tree edit funnels through here, which makes this
+           the one place that can notice work being done while the time
+           tracker is paused. The tracker itself decides whether that's
+           worth raising (see forest/time-tracking's noteEdit) — this call
+           is unconditional and cheap. */
+        window.arborTimeTracking &&
+          "function" == typeof window.arborTimeTracking.noteEdit &&
+          window.arborTimeTracking.noteEdit();
       }
       function markSaved() {
         ((_unsaved = false),
@@ -48825,10 +48510,9 @@
  *
  * CONSUMES (declared in other modules)
  *   escHtml, pushOverlayState, remove, sheetBulkTags, sheetCardTags,
- *   sheetConfirm, sheetFlatten, sheetForestActions, sheetForestRemove,
- *   sheetForestRename, sheetForestSessionHistory, sheetManageTags,
- *   sheetNewForest, sheetNewTag, sheetTreeActions, sheetTreeComment,
- *   sheetTreeTags
+ *   sheetConfirm, sheetFlatten, sheetForestActions, sheetForestHistory,
+ *   sheetForestRemove, sheetForestRename, sheetManageTags, sheetNewForest,
+ *   sheetNewTag, sheetTreeActions, sheetTreeComment, sheetTreeTags
  *
  * DOM ELEMENTS (by id)
  *   a-sheet, a-sheet-back, a-sheet-body, a-sheet-title
@@ -48880,7 +48564,7 @@
           forestActions: sheetForestActions,
           forestRename: sheetForestRename,
           forestRemove: sheetForestRemove,
-          forestSessionHistory: sheetForestSessionHistory,
+          forestHistory: sheetForestHistory,
           flatten: sheetFlatten,
         })[frame.mode](body, title, frame.ctx);
       }
@@ -52043,13 +51727,6 @@
           t && (_lastFileHandle = t),
           t || opts.keepHandle || (_lastFileHandle = null),
           _adoptForestIdentity(e, t, opts),
-          /* Registry entry has to exist (with the real name/id from
-             _adoptForestIdentity) *before* startSession below — see
-             state/forest-state's boot-time comment on this same
-             ordering. Without it, endSession's _regPatch and the History
-             sheet's _regEntry lookup find no entry to write/read, and any
-             row that gets created downstream is missing `name`. */
-          _syncRegistryFromOpen(),
           /* Start timing this forest's session now that it's the open
              one — see forest/time-tracking. This is the single load path
              for every forest (launch, import, or a Forests-tab switch),
@@ -52060,6 +51737,7 @@
           window._clearUndoHistory && window._clearUndoHistory(),
           window._resetTabDeck && window._resetTabDeck(),
           render(),
+          _syncRegistryFromOpen(),
           renderForests(),
           t && !opts.silent && showImportBanner());
       }
@@ -52094,9 +51772,7 @@
  *   - schedules timers
  */
       (window.addEventListener("popstate", (event) => {
-        document.getElementById("ptn-ov").classList.contains("open")
-          ? window.arborTimeTracking.closePausedEditNotice()
-          : sheetOpen()
+        sheetOpen()
           ? closeSheet()
           : document.getElementById("atrees-plant-row").classList.contains("editing")
           ? closePlantTree()
@@ -52115,13 +51791,6 @@
                     : selectedId && clearSelection();
       }),
         document.addEventListener("keydown", (event) => {
-          if (
-            "Escape" === event.key &&
-            document.getElementById("ptn-ov").classList.contains("open")
-          ) {
-            (event.preventDefault(), window.arborTimeTracking.closePausedEditNotice());
-            return;
-          }
           if ("Escape" === event.key && sheetOpen()) {
             (event.preventDefault(), sheetBack());
             return;
@@ -59664,7 +59333,7 @@
  *
  * DOM ELEMENTS (by id)
  *   hdr-kebab-btn, settings-close, settings-idle-timeout, settings-ov,
- *   settings-text-size, settings-toggle-idle-from-background, util-rail,
+ *   settings-text-size, settings-toggle-idle-background, util-rail,
  *   util-rail-settings
  *
  * SIDE EFFECTS
@@ -59693,16 +59362,11 @@
              blob as everything else, so it's one popup and one storage
              key for every preference. */
           idleTimeoutMinutes: 5,
-          /* When true, backgrounding the app (tab hidden, phone locked,
-             app switched away from) does NOT immediately pause the
-             tracker the way it normally does — instead the idle timeout
-             above starts counting down from the moment of invisibility,
-             same as it would from the last real input. If the user comes
-             back before that timeout elapses, the whole backgrounded
-             stretch counts as active (the assumption being they're still
-             working, just glanced away); if they don't, it idles out
-             exactly like normal inactivity would. Off by default so the
-             tracker's behavior doesn't change for existing users. */
+          /* Off by default: a tab you can't see usually isn't a forest
+             you're reading, so hiding it stops the clock at once. Turned
+             on, a hidden tab keeps counting until the idle timeout above
+             expires — which caps how much unattended background time can
+             ever be credited. */
           idleFromBackground: false,
         };
 
@@ -59826,7 +59490,10 @@
           { id: "settings-toggle-confirm-delete", key: "confirmDelete" },
           { id: "settings-toggle-compact", key: "compactCards" },
           { id: "settings-toggle-colorize-tags", key: "colorizeTags", onChange: repaintTagColors },
-          { id: "settings-toggle-idle-from-background", key: "idleFromBackground" },
+          /* Read straight off window.arborSettings by
+             forest/time-tracking on each visibility change, so flipping
+             it takes effect on the next hide with no apply step. */
+          { id: "settings-toggle-idle-background", key: "idleFromBackground" },
         ];
 
         function syncToggleEl(el, on) {
@@ -59907,7 +59574,12 @@
  *   - registers DOM event listeners
  */
       (function () {
-        const SKIP_TYPES = ["checkbox", "radio", "file", "button", "submit", "range", "color", "password", "date", "time"];
+        /* Types Chrome's password heuristic never targets anyway, so
+           they gain nothing from the readonly trick and lose real
+           behaviour to it: a readonly datetime-local or number input
+           swallows the first click that would have opened its picker or
+           stepper (see the session add/edit form in forest/sheets). */
+        const SKIP_TYPES = ["checkbox", "radio", "file", "button", "submit", "range", "color", "password", "date", "time", "datetime-local", "number"];
         function armInput(el) {
           if (!el || el.tagName !== "INPUT" || el.dataset.afArmed) return;
           const type = (el.getAttribute("type") || "text").toLowerCase();
